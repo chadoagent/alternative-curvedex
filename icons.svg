@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <!--
+    CurveDEX icon sprite — minimalistic stroke icons, 16x16 viewBox.
+    Stroke uses currentColor so CSS color cascade controls hue.
+    Usage:
+      <svg width="16" height="16"><use xlink:href="icons.svg#icon-search"/></svg>
+    Or inline:
+      <svg width="16" height="16"><use href="icons.svg#icon-search"/></svg>
+  -->
+
+  <symbol id="icon-search" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+    <circle cx="7" cy="7" r="4.5"/>
+    <line x1="10.5" y1="10.5" x2="13.5" y2="13.5"/>
+  </symbol>
+
+  <symbol id="icon-wallet" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+    <rect x="2" y="4" width="12" height="9" rx="1.5"/>
+    <path d="M2 6.5h9a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H2"/>
+    <circle cx="10.25" cy="8.25" r="0.75" fill="currentColor" stroke="none"/>
+  </symbol>
+
+  <symbol id="icon-star-filled" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round">
+    <polygon points="8,1.8 9.95,5.75 14.3,6.4 11.15,9.45 11.9,13.8 8,11.75 4.1,13.8 4.85,9.45 1.7,6.4 6.05,5.75"/>
+  </symbol>
+
+  <symbol id="icon-star-outline" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+    <polygon points="8,1.8 9.95,5.75 14.3,6.4 11.15,9.45 11.9,13.8 8,11.75 4.1,13.8 4.85,9.45 1.7,6.4 6.05,5.75"/>
+  </symbol>
+
+  <symbol id="icon-chevron-down" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3.5,6 8,10.5 12.5,6"/>
+  </symbol>
+
+  <symbol id="icon-chevron-up" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3.5,10 8,5.5 12.5,10"/>
+  </symbol>
+
+  <symbol id="icon-swap-vertical" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 2.5v11M5 2.5l-2 2.2M5 2.5l2 2.2"/>
+    <path d="M11 13.5v-11M11 13.5l-2-2.2M11 13.5l2-2.2"/>
+  </symbol>
+
+  <symbol id="icon-settings" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="2"/>
+    <path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4M12.6 12.6l-1.4-1.4M4.8 4.8L3.4 3.4"/>
+  </symbol>
+
+  <symbol id="icon-chart-bar" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="2" y1="13.5" x2="14" y2="13.5"/>
+    <rect x="3.5" y="9" width="2" height="4.5" rx="0.3"/>
+    <rect x="7" y="6" width="2" height="7.5" rx="0.3"/>
+    <rect x="10.5" y="3" width="2" height="10.5" rx="0.3"/>
+  </symbol>
+
+  <symbol id="icon-external-link" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 4.5h6v6"/>
+    <line x1="11.5" y1="4.5" x2="4.5" y2="11.5"/>
+  </symbol>
+
+  <symbol id="icon-legend-bar" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <line x1="2" y1="8" x2="14" y2="8"/>
+  </symbol>
+
+  <symbol id="icon-legend-dashed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="2.5 2">
+    <line x1="2" y1="8" x2="14" y2="8"/>
+  </symbol>
+
+  <!-- Lucide-style "copy" icon — two overlapping rounded rectangles. Used by
+       per-coin contract addresses in the right pool detail panel; click copies
+       the full address to the clipboard. -->
+  <symbol id="icon-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="5" width="9" height="9" rx="1.5"/>
+    <path d="M3 11V3.5A1.5 1.5 0 0 1 4.5 2H11"/>
+  </symbol>
+
+  <!-- Lucide-style "check" icon — used as transient confirmation after copy. -->
+  <symbol id="icon-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3,8.5 6.5,12 13,4.5"/>
+  </symbol>
+</svg>
