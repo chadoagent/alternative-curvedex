@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CurveDEX RPC Benchmark</title>
+<style>
+  body { font-family: ui-monospace, Menlo, Consolas, monospace; max-width: 1100px; margin: 24px auto; padding: 0 16px; background: #0e0e0e; color: #ddd; }
+  h1 { font-size: 18px; }
+  button { padding: 8px 14px; cursor: pointer; background: #2a4; color: #fff; border: 0; border-radius: 4px; font-weight: 700; }
+  button:disabled { background: #555; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+  th, td { padding: 6px 8px; border: 1px solid #333; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #1a1a1a; position: sticky; top: 0; }
+  tr.dead td { color: #f55; }
+  tr.slow td { color: #fc5; }
+  tr.fast td { color: #4f8; }
+  pre { background: #111; padding: 12px; overflow: auto; font-size: 11px; }
+  #status { margin-top: 12px; font-weight: 700; }
+  .opt { display: inline-block; margin-right: 16px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>CurveDEX RPC Benchmark — Free Public Ethereum Mainnet</h1>
+<p>Probes each RPC in the candidate pool with N sequential <code>eth_call</code>
+of <code>get_virtual_price()</code> on Curve 3pool
+(<code>0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7</code>). Reports
+success-rate, p50, p95, error count.</p>
+<p>
+  <span class="opt">Calls per RPC: <input id="n" type="number" value="30" min="1" max="200" style="width:70px"></span>
+  <span class="opt">Per-call timeout (ms): <input id="t" type="number" value="3000" min="500" max="15000" style="width:80px"></span>
+  <button id="run">Run benchmark</button>
+  <button id="copy">Copy markdown</button>
+</p>
+<div id="status">idle</div>
+<table id="tbl">
+  <thead>
+    <tr>
+      <th>URL</th>
+      <th>OK</th>
+      <th>Err</th>
+      <th>Rate</th>
+      <th>p50 ms</th>
+      <th>p95 ms</th>
+      <th>min ms</th>
+      <th>max ms</th>
+      <th>1st errs</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<h2>Markdown output</h2>
+<pre id="md"></pre>
+<script>
+// Candidate pool — kept in sync with app.js ETH_RPCS as of 2026-05-01.
+// Bench includes a few extras (eth.llamarpc, regional bloXroute mirrors,
+// merkle, flashbots, subquery) so we can re-verify whether they recover.
+const POOL = [
+  'https://eth.rpc.blxrbdn.com',
+  'https://ethereum-rpc.publicnode.com',
+  'https://ethereum.publicnode.com',
+  'https://eth.drpc.org',
+  // Tenderly removed 2026-05-02 — throttles to 408/429 after 3-4 calls (structural).
+  'https://eth.api.onfinality.io/public',
+  'https://eth-mainnet.public.blastapi.io',
+  'https://1rpc.io/eth',
+  'https://rpc.mevblocker.io',
+  // monitored — currently failing, re-bench periodically
+  'https://eth.llamarpc.com',
+  'https://virginia.rpc.blxrbdn.com',
+  'https://uk.rpc.blxrbdn.com',
+  'https://singapore.rpc.blxrbdn.com',
+  'https://ethereum.rpc.subquery.network/public',
+  'https://eth.merkle.io',
+  'https://rpc.flashbots.net',
+];
+
+// 3pool get_virtual_price() — selector 0xbb7b8b80, no args.
+const TARGET = '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7';
+const DATA = '0xbb7b8b80';
+
+function quantile(arr, q) {
+  if (!arr.length) return null;
+  const sorted = arr.slice().sort((a, b) => a - b);
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  return sorted[base + 1] !== undefined
+    ? sorted[base] + rest * (sorted[base + 1] - sorted[base])
+    : sorted[base];
+}
+
+async function callOne(url, timeoutMs) {
+  const t0 = performance.now();
+  const ctl = new AbortController();
+  const tid = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', method: 'eth_call',
+        params: [{ to: TARGET, data: DATA }, 'latest'],
+        id: Date.now(),
+      }),
+      signal: ctl.signal,
+    });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error('http-' + r.status);
+    const j = await r.json();
+    if (j.error) throw new Error('rpc-' + (j.error.message || j.error.code).toString().slice(0, 40));
+    if (!j.result) throw new Error('no-result');
+    return { ok: true, lat: performance.now() - t0 };
+  } catch (e) {
+    clearTimeout(tid);
+    return { ok: false, err: (e && e.message) ? e.message.slice(0, 40) : 'unknown', lat: performance.now() - t0 };
+  }
+}
+
+async function benchOne(url, n, timeoutMs, onTick) {
+  const lats = [];
+  let okCount = 0;
+  let errCount = 0;
+  const errSamples = [];
+  for (let i = 0; i < n; i++) {
+    const r = await callOne(url, timeoutMs);
+    if (r.ok) {
+      okCount++;
+      lats.push(r.lat);
+    } else {
+      errCount++;
+      if (errSamples.length < 3) errSamples.push(r.err);
+    }
+    onTick(i + 1, n);
+  }
+  const p50 = quantile(lats, 0.5);
+  const p95 = quantile(lats, 0.95);
+  const min = lats.length ? Math.min(...lats) : null;
+  const max = lats.length ? Math.max(...lats) : null;
+  return { url, okCount, errCount, total: n, lats, p50, p95, min, max, errSamples };
+}
+
+function fmt(n) { return n == null ? '—' : Math.round(n); }
+
+function rowClass(r) {
+  if (r.errCount === r.total) return 'dead';
+  if (r.p50 != null && r.p50 > 1500) return 'slow';
+  if (r.p50 != null && r.p50 < 300 && r.errCount === 0) return 'fast';
+  return '';
+}
+
+function renderRow(r) {
+  return `<tr class="${rowClass(r)}">
+    <td>${r.url}</td>
+    <td>${r.okCount}</td>
+    <td>${r.errCount}</td>
+    <td>${(100 * r.okCount / r.total).toFixed(0)}%</td>
+    <td>${fmt(r.p50)}</td>
+    <td>${fmt(r.p95)}</td>
+    <td>${fmt(r.min)}</td>
+    <td>${fmt(r.max)}</td>
+    <td>${r.errSamples.join(' / ') || '—'}</td>
+  </tr>`;
+}
+
+function renderMarkdown(results) {
+  const lines = [];
+  lines.push('# CurveDEX RPC Benchmark Results');
+  lines.push('');
+  lines.push('Generated: ' + new Date().toISOString());
+  lines.push('Method: 30x sequential `eth_call` of `get_virtual_price()` on Curve 3pool');
+  lines.push('Browser: ' + navigator.userAgent);
+  lines.push('');
+  lines.push('| URL | OK | Err | Rate | p50 ms | p95 ms | min | max | First errors |');
+  lines.push('|-----|----|-----|------|--------|--------|-----|-----|--------------|');
+  // sort by p50 asc, dead last
+  const sorted = results.slice().sort((a, b) => {
+    const aDead = a.errCount === a.total;
+    const bDead = b.errCount === b.total;
+    if (aDead && !bDead) return 1;
+    if (!aDead && bDead) return -1;
+    if (a.p50 == null && b.p50 == null) return 0;
+    if (a.p50 == null) return 1;
+    if (b.p50 == null) return -1;
+    return a.p50 - b.p50;
+  });
+  for (const r of sorted) {
+    lines.push(`| ${r.url} | ${r.okCount} | ${r.errCount} | ${(100 * r.okCount / r.total).toFixed(0)}% | ${fmt(r.p50)} | ${fmt(r.p95)} | ${fmt(r.min)} | ${fmt(r.max)} | ${r.errSamples.join(' / ') || '—'} |`);
+  }
+  lines.push('');
+  // Recommended order
+  const recommended = sorted
+    .filter(r => r.okCount / r.total >= 0.8)
+    .map(r => r.url);
+  lines.push('## Recommended ETH_RPCS (success-rate ≥80%, sorted p50 ascending)');
+  lines.push('');
+  lines.push('```js');
+  lines.push('const ETH_RPCS = [');
+  for (const u of recommended) {
+    lines.push(`  '${u}',`);
+  }
+  lines.push('];');
+  lines.push('```');
+  return lines.join('\n');
+}
+
+async function run() {
+  const n = parseInt(document.getElementById('n').value, 10) || 30;
+  const t = parseInt(document.getElementById('t').value, 10) || 3000;
+  const tbody = document.querySelector('#tbl tbody');
+  tbody.innerHTML = '';
+  const status = document.getElementById('status');
+  document.getElementById('run').disabled = true;
+  const results = [];
+  for (let i = 0; i < POOL.length; i++) {
+    const url = POOL[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${url}</td><td colspan="8">running 0/${n}…</td>`;
+    tbody.appendChild(tr);
+    status.textContent = `[${i + 1}/${POOL.length}] benching ${url}`;
+    const r = await benchOne(url, n, t, (done, total) => {
+      tr.children[1].setAttribute('colspan', '8');
+      tr.children[1].textContent = `running ${done}/${total}…`;
+    });
+    results.push(r);
+    tr.outerHTML = renderRow(r);
+  }
+  status.textContent = 'done — ' + results.length + ' RPCs benched';
+  document.getElementById('run').disabled = false;
+  document.getElementById('md').textContent = renderMarkdown(results);
+  // Stash on window for programmatic retrieval (e.g. via Playwright evaluate).
+  window.__BENCH_RESULTS = results;
+  window.__BENCH_MARKDOWN = document.getElementById('md').textContent;
+}
+
+document.getElementById('run').addEventListener('click', run);
+document.getElementById('copy').addEventListener('click', () => {
+  const md = document.getElementById('md').textContent;
+  navigator.clipboard.writeText(md).then(() => {
+    document.getElementById('status').textContent = 'markdown copied to clipboard';
+  });
+});
+</script>
+</body>
+</html>
