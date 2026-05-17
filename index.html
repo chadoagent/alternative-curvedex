@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  Content Security Policy (Level 1 baseline 2026-05-17). Hardens against CDN
+  supply-chain compromise (script-src whitelist) and clickjacking
+  (frame-ancestors 'none'). 'unsafe-inline' on script-src is kept because the
+  code uses many inline onclick handlers built from template strings; removing
+  it requires a separate event-delegation migration pass (deferred). When that
+  pass lands, drop 'unsafe-inline' from script-src.
+  - script-src: only self + the 3 CDN hosts we actually load from.
+  - connect-src: 'self' + https: — required because RPC pool spans ~30 origins
+    across 21 chains and rotates dynamically; https: still blocks http: exfil.
+  - object-src 'none': no <object>/<embed>/<applet> at all.
+  - frame-ancestors 'none': site can't be iframed (clickjacking guard).
+  - no 'unsafe-eval': blocks dynamic JS compilation.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; base-uri 'self';">
+<title>CurveDEX - Trade & Yield on Curve Finance</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<!-- Preconnect to API domains for faster first request -->
+<link rel="preconnect" href="https://api.curve.finance" crossorigin>
+<link rel="preconnect" href="https://prices.curve.finance" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<!-- Preload chart lib (will be loaded with defer, but download starts now) -->
+<link rel="preload" href="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js" as="script" crossorigin="anonymous" integrity="sha384-JZigAjwiaZtkUbA44CWkPaT3iBb/mU5pO6QOANp+OqHd4q+1+7MG1kzp2OOP9ZfP">
+<!-- Single source of truth for cache-buster version (used by all <script>/<link> tags below via document.write) -->
+<script>window.__APP_VERSION__ = '20260518a';</script>
+<!--
+  __DYNAMIC_BASE — origin (or empty for same-origin) where the daily-refreshed
+  data files live: cache.json, chains_config.json, ratings/data/cache.json.
+  Empty string keeps current behaviour (load from current host). When the
+  static bundle is published to IPFS this gets baked to e.g.
+  "https://llama.box" before pin so the bundle keeps fetching dynamic data
+  from the classical host while itself living on IPFS.
+-->
+<script>window.__DYNAMIC_BASE = '';</script>
+<!-- Start API fetch immediately, before any scripts load -->
+<script>
+// Server-side cache.json is Ethereum-only (collector runs on mainnet). For any
+// other chain, skip it and fetch directly from the chain-specific Curve API.
+// Hardcoded allowlist guards against LS poisoning of __activeChainKey before
+// CHAINS_CONFIG loads (the value lands in a fetch URL below). Mirrors keys in
+// chains_config.json; any new chain there must be added here too.
+const __CHAIN_KEYS_ALLOW = new Set(['ethereum','polygon','fantom','arbitrum','avalanche','optimism','xdai','aurora','harmony','moonbeam','kava','celo','zkevm','zksync','base','fraxtal','bsc','x-layer','mantle','sonic','hyperliquid']);
+const __savedChainKey = localStorage.getItem('curvedex.activeChainKey');
+const __activeChainKey = (__savedChainKey && __CHAIN_KEYS_ALLOW.has(__savedChainKey)) ? __savedChainKey : 'ethereum';
+window.__cachePromise = __activeChainKey === 'ethereum'
+  ? fetch((window.__DYNAMIC_BASE || '') + '/curvedex/cache.json?v=' + window.__APP_VERSION__)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('Cache HTTP ' + r.status)))
+      .catch(e => { console.warn('Cache unavailable, will use direct API:', e.message); return null; })
+  : Promise.resolve(null);
+// Prefetch direct API as fallback (only used if cache is null/missing)
+window.__volumesPromise = window.__cachePromise.then(c => c ? null :
+  fetch('https://api.curve.finance/v1/getVolumes/' + __activeChainKey)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+    .catch(e => { console.error('Prefetch getVolumes failed:', e); return null; })
+);
+window.__gaugesPromise = window.__cachePromise.then(c => c ? null :
+  fetch('https://api.curve.finance/v1/getAllGauges')
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+    .catch(e => { console.error('Prefetch getAllGauges failed:', e); return null; })
+);
+</script>
+<!-- Defer render-blocking scripts -->
+<script defer src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js" crossorigin="anonymous" integrity="sha384-JZigAjwiaZtkUbA44CWkPaT3iBb/mU5pO6QOANp+OqHd4q+1+7MG1kzp2OOP9ZfP"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" crossorigin="anonymous" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js" crossorigin="anonymous" integrity="sha384-SM54CE5h+qdDI046d2Y5ym7wq1kq4uxcQ1cqGq5/+5jrE5tPLeDJSq711Q8sIska"></script>
+<script>document.write(`<script defer src="router.js?v=${window.__APP_VERSION__}"><\/script>`);</script>
+<!-- ethers.js: lazy-loaded on wallet connect (506KB savings on initial load) -->
+<script>document.write(`<link rel="stylesheet" href="styles.css?v=${window.__APP_VERSION__}">`);</script>
+</head>
+<body>
+<!-- SVG icon sprite (inlined for instant render, no extra request).
+     Use via: <svg class="icon"><use href="#icon-{name}"/></svg>
+     currentColor cascades into stroke/fill from parent CSS color. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="icon-search" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+    <circle cx="7" cy="7" r="4.5"/>
+    <line x1="10.5" y1="10.5" x2="13.5" y2="13.5"/>
+  </symbol>
+  <symbol id="icon-wallet" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+    <rect x="2" y="4" width="12" height="9" rx="1.5"/>
+    <path d="M2 6.5h9a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H2"/>
+    <circle cx="10.25" cy="8.25" r="0.75" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="icon-star-filled" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round">
+    <polygon points="8,1.8 9.95,5.75 14.3,6.4 11.15,9.45 11.9,13.8 8,11.75 4.1,13.8 4.85,9.45 1.7,6.4 6.05,5.75"/>
+  </symbol>
+  <symbol id="icon-star-outline" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+    <polygon points="8,1.8 9.95,5.75 14.3,6.4 11.15,9.45 11.9,13.8 8,11.75 4.1,13.8 4.85,9.45 1.7,6.4 6.05,5.75"/>
+  </symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3.5,6 8,10.5 12.5,6"/>
+  </symbol>
+  <symbol id="icon-chevron-up" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3.5,10 8,5.5 12.5,10"/>
+  </symbol>
+  <symbol id="icon-chevron-left" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="10,3.5 5.5,8 10,12.5"/>
+  </symbol>
+  <symbol id="icon-chevron-right" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6,3.5 10.5,8 6,12.5"/>
+  </symbol>
+  <symbol id="icon-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="5" width="9" height="9" rx="1.5"/>
+    <path d="M3 11V3.5A1.5 1.5 0 0 1 4.5 2H11"/>
+  </symbol>
+  <symbol id="icon-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3,8.5 6.5,12 13,4.5"/>
+  </symbol>
+  <symbol id="icon-swap-vertical" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 2.5v11M5 2.5l-2 2.2M5 2.5l2 2.2"/>
+    <path d="M11 13.5v-11M11 13.5l-2-2.2M11 13.5l2-2.2"/>
+  </symbol>
+  <symbol id="icon-settings" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="2"/>
+    <path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4M12.6 12.6l-1.4-1.4M4.8 4.8L3.4 3.4"/>
+  </symbol>
+  <symbol id="icon-chart-bar" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="2" y1="13.5" x2="14" y2="13.5"/>
+    <rect x="3.5" y="9" width="2" height="4.5" rx="0.3"/>
+    <rect x="7" y="6" width="2" height="7.5" rx="0.3"/>
+    <rect x="10.5" y="3" width="2" height="10.5" rx="0.3"/>
+  </symbol>
+  <symbol id="icon-external-link" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 4.5h6v6"/>
+    <line x1="11.5" y1="4.5" x2="4.5" y2="11.5"/>
+  </symbol>
+  <symbol id="icon-legend-bar" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <line x1="2" y1="8" x2="14" y2="8"/>
+  </symbol>
+  <symbol id="icon-legend-dashed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="2.5 2">
+    <line x1="2" y1="8" x2="14" y2="8"/>
+  </symbol>
+  <symbol id="icon-profile" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="5.5" r="2.5"/>
+    <path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
+  </symbol>
+</svg>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<div class="header">
+  <div class="logo" onclick="navigate('#/')"><img src="logo.svg" alt="" width="28" height="28" style="vertical-align:middle;margin-right:6px">Curve<span>DEX</span></div>
+  <nav class="header-nav">
+    <button class="nav-link active" id="navTrade" onclick="navigateToView('trade')">Trade</button>
+    <button class="nav-link" id="navSwap" onclick="navigate('#/swap')">Swap</button>
+    <button class="nav-link" id="navPools" onclick="navigateToView('pools')">Pools</button>
+    <button class="nav-link" id="navYield" onclick="navigateToView('yield')">Yield</button>
+  </nav>
+  <button class="mobile-pool-toggle" id="mobilePoolToggle">List</button>
+  <div class="header-stats" id="headerStats">
+    <div class="header-stat">
+      <span class="header-stat-label">24h Volume</span>
+      <span class="header-stat-value" id="hdr-volume">--</span>
+    </div>
+    <div class="header-stat">
+      <span class="header-stat-label">TVL</span>
+      <span class="header-stat-value" id="hdr-tvl">--</span>
+    </div>
+    <div class="header-stat">
+      <span class="header-stat-label">Avg APY</span>
+      <span class="header-stat-value" id="hdr-avg-apy" style="color:var(--green)">--</span>
+    </div>
+    <div class="header-stat">
+      <span class="header-stat-label">Pools</span>
+      <span class="header-stat-value" id="hdr-pools">--</span>
+    </div>
+  </div>
+  <div class="chain-picker" id="chainPicker">
+    <button class="chain-picker-btn" id="chainPickerBtn" type="button" aria-label="Switch network" aria-haspopup="true" aria-expanded="false" onclick="toggleChainPicker(event)">
+      <img class="chain-picker-icon" id="chainPickerIcon" alt="" width="20" height="20">
+      <span class="chain-picker-fallback" id="chainPickerFallback" aria-hidden="true">E</span>
+      <svg class="chain-picker-caret" viewBox="0 0 12 12" width="10" height="10"><path fill="currentColor" d="M6 9L1.5 4h9z"/></svg>
+    </button>
+    <div class="chain-picker-menu" id="chainPickerMenu" role="menu" hidden></div>
+  </div>
+  <button class="wallet-btn" id="walletBtn" onclick="connectWallet()" aria-label="Connect Wallet"><span class="wallet-btn-icon" aria-hidden="true"><svg class="icon"><use href="#icon-wallet"/></svg></span><span class="wallet-btn-text">Connect Wallet</span></button>
+</div>
+
+<!-- ============================================================
+     MAIN LAYOUT
+     ============================================================ -->
+<div class="main-layout">
+
+  <!-- LEFT: Shared Pool Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-search">
+      <div class="search-wrap">
+        <span class="search-icon"><svg class="icon"><use href="#icon-search"/></svg></span>
+        <input type="text" class="search-input" id="poolSearch" placeholder="Search pools..." autocomplete="off">
+      </div>
+    </div>
+    <div class="sidebar-filters" id="registryFilters">
+      <button class="filter-btn" data-registry="main">Main</button>
+      <button class="filter-btn" data-registry="crypto">Crypto</button>
+      <button class="filter-btn" data-registry="factory-stable-ng">Stable NG</button>
+      <button class="filter-btn" data-registry="factory-twocrypto">TwoCrypto</button>
+      <button class="filter-btn" data-registry="factory-tricrypto">TriCrypto</button>
+      <button class="filter-btn" data-registry="factory-crvusd">crvUSD</button>
+      <button class="filter-btn" data-registry="factory">Factory</button>
+      <button class="filter-btn" data-registry="factory-crypto">F-Crypto</button>
+      <button class="filter-btn filter-btn-mine" id="myAssetsToggle" type="button" title="Toggle: show only pools where your wallet has any position (Curve LP/staked, Convex, StakeDAO)">★ Mine</button>
+      <button class="filter-btn filter-btn-fav" id="favoritesToggle" type="button" title="Toggle: show only pools you've starred as favorites">★ Fav</button>
+      <button class="filter-btn filter-btn-gainers" id="gainersToggle" type="button" style="display:none" title="Toggle: show only pools whose gauge weight increased week-over-week (ΔW > 0)">↑ Gainers</button>
+      <button class="filter-btn filter-btn-losers" id="losersToggle" type="button" style="display:none" title="Toggle: show only pools whose gauge weight decreased week-over-week (ΔW < 0)">↓ Losers</button>
+      <button class="filter-btn" id="highVolumeToggle" type="button" title="Toggle: show only pools whose 24h volume is at least 100% of TVL (high utilization)">⚡ High Vol</button>
+      <button class="filter-btn" id="disbalanceToggle" type="button" title="Toggle: show only pools where any token's share is below 50% of equal split (e.g. ≥75/25 for 2 tokens, ≥17%/?? for 3)">⚖ Disbalance</button>
+      <button class="filter-btn" id="stablecoinsToggle" type="button" title="Toggle: show only pools where every token is classified as a stablecoin in the ratings aggregator (Pharos catalog). Includes USD/EUR/GBP/JPY etc.">🛡 Stablecoins</button>
+      <button class="filter-btn" id="minGradeBToggle" type="button" title="Toggle: show only pools where every token has a Pharos grade of B- or better (weakest-token rule). Strict subset of 🛡 Stablecoins.">🅰 Grade ≥ B</button>
+    </div>
+    <!-- Favorites collapsible sidebar block removed in v=20260502f: duplicates ★ Fav chip-filter (Алекс crvecodev/487 "дублируется Favourites"). Star icons in pool-row are kept as per-pool toggle. JS render fns stay no-op via existing early-return on missing DOM. -->
+
+    <div class="deposit-simulator" id="depositSimulator">
+      <label for="simDepositInput">Simulate deposit: $</label>
+      <input type="number" id="simDepositInput" value="10000" min="0" step="1000">
+      <span class="sim-hint">diluted APY</span>
+      <label class="filter-checkbox" id="chipShowHiddenLabel" title="When unchecked, hides deprecated pools (gauge killed by Curve DAO) and dust pools below $10K TVL. Tick to reveal them.">
+        <input type="checkbox" id="chipShowHidden" />
+        <span>Show hidden</span>
+      </label>
+    </div>
+    <div class="sidebar-sort" id="sidebarSort">
+      <div class="sort-col sort-col-name active" data-sort="name">Pool <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-rating" data-sort="rating" style="display:none" title="Minimum Pharos grade across pool coins (conservative — weakest token wins). Source: llama.box/ratings/. Click to sort A → F.">R <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-tvl" data-sort="tvl">TVL <span class="sort-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span></div>
+      <div class="sort-col sort-col-vol" data-sort="volume">Vol <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-apy" data-sort="apy">APY <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-gauge" data-sort="gauge" style="display:none" title="Top: CRV gauge emissions APR. Bottom: max external (non-CRV) rewards across Curve extra-rewards / Convex / StakeDAO. Click to sort by CRV.">CRV<br>EXT <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-total-apy" data-sort="totalApy" style="display:none" title="Best total APR across Curve / Convex / StakeDAO">Total <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-weight" data-sort="gaugeWeight" style="display:none" title="Gauge weight — % of CRV emissions for this pool. Hover for rank.">WT <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-weight-delta" data-sort="gaugeDelta" style="display:none" title="Weekly delta in pp (signed): positive on top when sorted desc, negative on top when asc. Plus rank movement.">ΔW <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-weight-forecast" data-sort="gaugeForecast" style="display:none" title="FAPR — projected next-Thursday CRV APR for this gauge, no-boost baseline. Source: currently locked vote_user_slopes via Curve API. Hover the cell for the boost range (×1 → ×2.5 with full veCRV) and forecast weight.">FAPR <span class="sort-arrow"></span></div>
+    </div>
+    <div class="pool-list" id="poolList">
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="pool-skeleton-item"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    </div>
+    <div class="pool-count" id="poolCount">-- pools</div>
+    <div class="pool-list" id="pairList" style="display:none;"></div>
+    <div class="pool-count" id="pairCount" style="display:none;">-- pairs</div>
+  </div>
+
+  <!-- ============================================================
+       POOLS VIEW: Center + Right
+       ============================================================ -->
+  <div class="center-panel" id="view-pools-center" style="display:none;">
+    <div class="chart-header chart-header-binance" id="chartHeader">
+      <div class="chart-header-row chart-header-top">
+        <button class="chart-fav-star" id="poolFavStar" title="Add to favorites" type="button" aria-label="Toggle favorite" aria-pressed="false" onclick="togglePoolFavorite()"><svg class="icon"><use href="#icon-star-outline"/></svg></button>
+        <div class="chart-pair-icons">
+          <div class="pair-icon pair-icon-base" id="poolPairIconBase">?</div>
+          <div class="pair-icon pair-icon-quote" id="poolPairIconQuote">?</div>
+        </div>
+        <div class="chart-pair-block">
+          <div class="chart-pair" id="poolPairName" title="Change pool"><span class="pair-clickable pair-accent" onclick="openPairPicker('from')">--</span><span class="pair-divider"> / </span><span class="pair-clickable" onclick="openPairPicker('to')">--</span></div>
+          <div class="chart-pool-meta" id="poolPoolMeta">--</div>
+        </div>
+        <div class="chart-price-block">
+          <div class="chart-price" id="chartPrice">--</div>
+          <div class="chart-price-sub" id="poolChartPriceSub"></div>
+        </div>
+        <div class="chart-change-block">
+          <div class="chart-change" id="chartChange">--</div>
+          <div class="chart-change-abs" id="poolChartChangeAbs"></div>
+        </div>
+        <div class="chart-tags" id="poolChartTags"></div>
+        <div class="chart-apr-pill" id="poolChartAprPill" style="display:none;">APR <span id="poolChartAprValue">--</span></div>
+      </div>
+      <div class="chart-header-row chart-header-stats" id="poolHeaderStats">
+        <div class="stat-cell"><span class="stat-label">24h High</span><span class="stat-val stat-val-high" id="poolChartHigh24">--</span></div>
+        <div class="stat-cell"><span class="stat-label">24h Low</span><span class="stat-val stat-val-low" id="poolChartLow24">--</span></div>
+        <div class="stat-cell"><span class="stat-label">24h Vol(<span id="poolChartVolBaseSym">base</span>)</span><span class="stat-val" id="poolChartVolBase">--</span></div>
+        <div class="stat-cell"><span class="stat-label">24h Vol(<span id="poolChartVolQuoteSym">USD</span>)</span><span class="stat-val" id="poolChartVolQuote">--</span></div>
+        <div class="stat-cell"><span class="stat-label">Pool TVL</span><span class="stat-val" id="poolChartPoolTvl">--</span></div>
+      </div>
+      <div id="chartOHLCV" class="trade-header-ohlcv">
+        <span>O: <span id="cO" style="color:var(--text)">--</span></span>
+        <span>H: <span id="cH" style="color:#0ecb81">--</span></span>
+        <span>L: <span id="cL" style="color:#f6465d">--</span></span>
+        <span>C: <span id="cC" style="color:var(--text)">--</span></span>
+        <span>Vol: <span id="chartVolume" style="color:var(--accent)">--</span></span>
+      </div>
+    </div>
+    <div class="time-selector">
+      <button class="time-btn" data-agg="1" data-unit="hour">1H</button>
+      <button class="time-btn active" data-agg="4" data-unit="hour">4H</button>
+      <button class="time-btn" data-agg="1" data-unit="day">1D</button>
+      <button class="time-btn" data-agg="7" data-unit="day">1W</button>
+    </div>
+    <div class="chart-container" id="trade-chart-container">
+      <div class="loading-center">Select a pool to view chart</div>
+    </div>
+
+    <!-- Token Balances (moved from right panel to under chart, like /yield) -->
+    <div class="pool-details-section open" id="tradeTokenBalances" data-page-only="pools" style="display:none;">
+      <div class="pool-details-toggle" onclick="this.parentElement.classList.toggle('open')">
+        <h4>Token Balances</h4>
+        <span class="pool-details-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+      </div>
+      <div class="pool-details-body" id="tradeTokenBalancesList"></div>
+    </div>
+  </div>
+
+  <div class="right-panel" id="view-pools-right" style="display:none;">
+    <h3 style="padding:12px 16px 0;color:var(--text);font-size:15px;">Swap</h3>
+    <div style="display:block;">
+      <div class="swap-section">
+        <!-- Slippage -->
+        <div class="slippage-row">
+          <span class="slippage-label">Slippage</span>
+          <div class="slippage-btns">
+            <button class="slippage-btn swap-slip" data-slip="0.1">0.1%</button>
+            <button class="slippage-btn swap-slip active" data-slip="0.5">0.5%</button>
+            <button class="slippage-btn swap-slip" data-slip="1.0">1.0%</button>
+          </div>
+          <input type="text" class="slippage-custom" id="slippageCustom" placeholder="%" maxlength="5">
+        </div>
+
+        <!-- From -->
+        <div class="swap-box" id="swapFromBox">
+          <div class="swap-box-label">
+            <span>From</span>
+            <span class="swap-box-balance" id="fromBalance" onclick="setMaxFrom()">Balance: --</span>
+          </div>
+          <div class="swap-box-row">
+            <input type="text" inputmode="decimal" class="swap-amount-input" id="fromAmount" placeholder="0.0" step="any">
+            <button class="token-select" id="fromTokenBtn" onclick="openTokenModal('from')">
+              <div class="token-icon" id="fromTokenIcon">?</div>
+              <span id="fromTokenName">Select</span>
+              <span class="arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preset buttons -->
+        <div class="preset-btns">
+          <button class="preset-btn" onclick="setPreset(0.25)">25%</button>
+          <button class="preset-btn" onclick="setPreset(0.50)">50%</button>
+          <button class="preset-btn" onclick="setPreset(0.75)">75%</button>
+          <button class="preset-btn" onclick="setPreset(1.0)">MAX</button>
+        </div>
+
+        <!-- Swap direction arrow -->
+        <div class="swap-arrow-wrap">
+          <div class="swap-arrow-btn" onclick="swapDirection()"><svg class="icon"><use href="#icon-swap-vertical"/></svg></div>
+        </div>
+
+        <!-- To -->
+        <div class="swap-box" id="swapToBox">
+          <div class="swap-box-label">
+            <span>To (estimated)</span>
+            <span class="swap-box-balance" id="toBalance">Balance: --</span>
+          </div>
+          <div class="swap-box-row">
+            <input type="text" inputmode="decimal" class="swap-amount-input" id="toAmount" placeholder="0.0" readonly>
+            <button class="token-select" id="toTokenBtn" onclick="openTokenModal('to')">
+              <div class="token-icon" id="toTokenIcon">?</div>
+              <span id="toTokenName">Select</span>
+              <span class="arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Swap details -->
+        <div class="swap-details" id="swapDetails" style="display:none;">
+          <div class="swap-detail-row"><span>Rate</span><span id="swapRate">--</span></div>
+          <div class="swap-detail-row"><span>Price Impact</span><span id="swapImpact">--</span></div>
+          <div class="swap-detail-row"><span>Min. Received</span><span id="swapMinReceived">--</span></div>
+          <div class="swap-detail-row"><span>Fee</span><span id="swapFee">--</span></div>
+        </div>
+
+        <!-- Submit -->
+        <button class="swap-submit connect" id="swapSubmit" onclick="handleSwapSubmit()">Connect Wallet</button>
+      </div>
+    </div>
+
+    <!-- Trades feed -->
+    <div class="trades-section">
+      <div class="trades-header">
+        <h3>Recent Activity</h3>
+        <div class="trades-filter">
+          <button class="trades-chip active" data-filter="all" onclick="setTradesFilter('all')">All</button>
+          <button class="trades-chip" data-filter="swap" onclick="setTradesFilter('swap')">Swaps</button>
+          <button class="trades-chip" data-filter="deposit" onclick="setTradesFilter('deposit')">Deposits</button>
+          <button class="trades-chip" data-filter="withdraw" onclick="setTradesFilter('withdraw')">Withdraws</button>
+        </div>
+      </div>
+      <div class="trades-table-wrap">
+        <table class="trades-table">
+          <thead><tr><th>Time</th><th>Type</th><th>Price</th><th>Amount</th><th>USD</th><th>Tx</th></tr></thead>
+          <tbody id="tradesTbody"><tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:12px;">Select a pool</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pool Details: Stats -->
+    <div class="pool-details-section open" id="tradePoolStats" style="display:none;">
+      <div class="pool-details-toggle" onclick="this.parentElement.classList.toggle('open')">
+        <h4>Pool Stats</h4>
+        <span class="pool-details-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+      </div>
+      <div class="pool-details-body">
+        <div class="pd-grid">
+          <div class="pd-row"><span class="pd-label">TVL</span><span class="pd-value" id="infoTvl">--</span></div>
+          <div class="pd-row"><span class="pd-label">24h Volume</span><span class="pd-value" id="infoVolume">--</span></div>
+          <div class="pd-row"><span class="pd-label">24h Fees</span><span class="pd-value" id="infoFees">--</span></div>
+          <div class="pd-row"><span class="pd-label">Virtual Price</span><span class="pd-value" id="infoVPrice">--</span></div>
+        </div>
+        <div class="apy-breakdown" id="tradeApyBreakdown"></div>
+      </div>
+    </div>
+
+    <!-- Pool Details: Parameters -->
+    <div class="pool-details-section open" id="tradePoolParams" style="display:none;">
+      <div class="pool-details-toggle" onclick="this.parentElement.classList.toggle('open')">
+        <h4>Pool Parameters</h4>
+        <span class="pool-details-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+      </div>
+      <div class="pool-details-body">
+        <div class="pd-grid">
+          <div class="pd-row"><span class="pd-label">Type</span><span class="pd-value" id="infoType">--</span></div>
+          <div class="pd-row"><span class="pd-label">A</span><span class="pd-value" id="infoAmpCoeff">--</span></div>
+          <div class="pd-row pd-full"><span class="pd-label">Pool</span><span class="pd-value" id="infoAddress">--</span></div>
+          <div class="pd-row pd-full"><span class="pd-label">LP Token</span><span class="pd-value" id="infoLpToken">--</span></div>
+          <div class="pd-row pd-full" id="infoGaugeRow" style="display:none"><span class="pd-label">Gauge</span><span class="pd-value" id="infoGauge">--</span></div>
+        </div>
+        <div class="pool-action-links" id="tradePoolLinks"></div>
+      </div>
+    </div>
+
+    <!-- Your Balances -->
+    <div class="balances-section" id="balancesSection" style="display:none;">
+      <div class="pool-info-title">In Wallet</div>
+      <div id="balancesList"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       YIELD VIEW: Center + Right
+       ============================================================ -->
+  <div class="center-panel" id="view-yield-center" style="display:none;">
+    <!-- Deprecated banner for pools with Curve API gauge.is_killed=true (Iron Bank etc.).
+         Shown only when pool.gaugeIsKilled — populated/hidden in yield.js updateYieldHeader().
+         Mirrors curve.finance original yellow "PROTOCOL DEPRECATED" alert. -->
+    <div class="yield-deprecated-banner" id="yieldDeprecatedBanner" style="display:none;">
+      <strong>⚠️ Pool deprecated</strong> — Gauge killed by Curve DAO. The underlying protocol may be abandoned. Verify deposit availability directly on <a href="https://curve.finance/dex/ethereum/pools/" target="_blank" rel="noopener" style="color:#f0b90b;text-decoration:underline">curve.finance</a> before acting.
+    </div>
+    <div class="yield-header" id="yieldHeader">
+      <div class="yield-header-row">
+        <button class="chart-fav-star" id="yieldFavStar" title="Add to favorites" type="button" aria-label="Toggle favorite" aria-pressed="false" onclick="toggleYieldPoolFavorite()"><svg class="icon"><use href="#icon-star-outline"/></svg></button>
+        <div class="chart-pair-icons" id="yieldPoolIcons"></div>
+        <div class="yield-pool-name" id="yieldPoolName" title="Change pool"><span class="pair-clickable pool-accent" onclick="openPairPicker('from')">Select a Pool</span></div>
+        <div class="yield-header-providers" id="yieldHeaderProviders">
+          <div class="yield-provider kpi-clickable" id="kpiConvexWrap" title="Convex Finance: total APR (base + CRV boosted + CVX). Click to open Convex pool." onclick="openConvexLink()">
+            <span class="yield-provider-label" style="color:#3a7bd5">Convex</span>
+            <span class="yield-provider-value" id="kpiConvexApy" style="color:#3a7bd5">--</span>
+          </div>
+          <div class="yield-provider kpi-clickable" id="kpiStakeDaoWrap" title="StakeDAO: total vault APR (incl. boost). Click to open StakeDAO pool." onclick="openStakeDaoLink()">
+            <span class="yield-provider-label" style="color:#a855f7">StakeDAO</span>
+            <span class="yield-provider-value" id="kpiStakeDaoApy" style="color:#a855f7">--</span>
+          </div>
+        </div>
+      </div>
+      <div class="yield-kpi-row" id="yieldKpiRow">
+        <div class="yield-kpi">
+          <span class="yield-kpi-label">Daily</span>
+          <span class="yield-kpi-value green" id="kpiDailyApy">--</span>
+        </div>
+        <div class="yield-kpi">
+          <span class="yield-kpi-label">Weekly</span>
+          <span class="yield-kpi-value green" id="kpiWeeklyApy">--</span>
+        </div>
+        <div class="yield-kpi">
+          <span class="yield-kpi-label">CRV</span>
+          <span class="yield-kpi-value blue" id="kpiGaugeApy">--</span>
+        </div>
+        <div class="yield-kpi" id="kpiMerklWrap" style="display:none">
+          <span class="yield-kpi-label" style="color:#b07aff">Merkl</span>
+          <span class="yield-kpi-value" id="kpiMerklApy" style="color:#b07aff">--</span>
+        </div>
+        <div class="yield-kpi">
+          <span class="yield-kpi-label">Total</span>
+          <span class="yield-kpi-value green" id="kpiTotalApy">--</span>
+        </div>
+        <div class="yield-kpi">
+          <span class="yield-kpi-label">TVL</span>
+          <span class="yield-kpi-value accent" id="kpiTvl">--</span>
+        </div>
+        <div class="yield-kpi yield-kpi-weight" id="kpiGaugeWeightWrap" style="display:none" title="Share of CRV emissions allocated to this pool's gauge (current epoch). Δ vs last week, rank among all active gauges.">
+          <span class="yield-kpi-label">Weight</span>
+          <span class="yield-kpi-value" id="kpiGaugeWeight">--</span>
+          <span class="gw-meta" id="kpiGaugeWeightMeta"></span>
+        </div>
+      </div>
+    </div>
+    <div class="chart-tabs">
+      <button class="chart-tab active" data-chart="apy">APY History</button>
+      <button class="chart-tab" data-chart="tvl">Virtual Price</button>
+      <button class="chart-tab" data-chart="gauge" id="chartTabGauge" style="display:none">Gauge Weight</button>
+    </div>
+    <div class="chart-container" id="yield-chart-container">
+      <div class="loading-center">Select a pool to view yield data</div>
+    </div>
+
+    <!-- Token Balances (reused from /pools — DRY: same component) -->
+    <div class="pool-details-section open" id="yieldTokenBalances" data-page-only="yield" style="display:none;">
+      <div class="pool-details-toggle" onclick="this.parentElement.classList.toggle('open')">
+        <h4>Token Balances</h4>
+        <span class="pool-details-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+      </div>
+      <div class="pool-details-body" id="yieldTokenBalancesList"></div>
+    </div>
+  </div>
+
+  <div class="right-panel" id="view-yield-right" style="display:none;">
+    <!-- Top-level tabs (curve.finance UX): Deposit | Withdraw | INFO -->
+    <div class="yield-tabs-top">
+      <button class="yt-top active" data-top="deposit" onclick="setYieldTopTab('deposit')">Deposit</button>
+      <button class="yt-top" data-top="withdraw" onclick="setYieldTopTab('withdraw')">Withdraw</button>
+      <button class="yt-top" data-top="info" onclick="setYieldTopTab('info')" title="Ratings &amp; project info per pool token (aggregated, NFA)">INFO</button>
+    </div>
+    <!-- Sub-tabs: populated dynamically by setYieldTopTab -->
+    <div class="yield-tabs-sub" id="ySubTabs"></div>
+
+    <!-- DEPOSIT TAB -->
+    <div class="tab-content active" id="tab-deposit">
+      <div class="deposit-section">
+        <div class="slippage-row">
+          <span class="slippage-label">Slippage</span>
+          <div class="slippage-btns">
+            <button class="slippage-btn dep-slip" data-slip="0.1">0.1%</button>
+            <button class="slippage-btn dep-slip active" data-slip="0.5">0.5%</button>
+            <button class="slippage-btn dep-slip" data-slip="1.0">1.0%</button>
+          </div>
+        </div>
+        <div class="section-subtitle">Add Liquidity</div>
+        <div id="depositCoinInputs">
+          <div style="text-align:center;color:var(--text-dim);padding:20px;font-size:12px;">Select a pool to deposit</div>
+        </div>
+        <div class="deposit-preview" id="depositPreview" style="display:none;">
+          <div class="preview-row"><span>Expected LP Tokens</span><span id="depositExpectedLP">--</span></div>
+          <div class="preview-row"><span>Share of Pool</span><span id="depositShareOfPool">--</span></div>
+        </div>
+        <div class="swap-detail-row gas-row"><span>Network fee</span><span id="depositGas" class="gas-value">--</span></div>
+        <label style="display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;color:var(--text-dim);font-size:12px;">
+          <input type="checkbox" id="depositAndStake" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;">
+          Stake LP tokens after deposit
+        </label>
+        <button class="action-btn connect" id="depositSubmit" onclick="handleDepositSubmit()">Connect Wallet</button>
+      </div>
+    </div>
+
+    <!-- WITHDRAW TAB -->
+    <div class="tab-content" id="tab-withdraw">
+      <div class="withdraw-section">
+        <div class="slippage-row">
+          <span class="slippage-label">Slippage</span>
+          <div class="slippage-btns">
+            <button class="slippage-btn wd-slip" data-slip="0.1">0.1%</button>
+            <button class="slippage-btn wd-slip active" data-slip="0.5">0.5%</button>
+            <button class="slippage-btn wd-slip" data-slip="1.0">1.0%</button>
+          </div>
+        </div>
+        <div class="withdraw-mode-toggle">
+          <button class="mode-btn active" data-mode="balanced" onclick="setWithdrawMode('balanced')">Balanced</button>
+          <button class="mode-btn" data-mode="single" onclick="setWithdrawMode('single')">Single Coin</button>
+        </div>
+
+        <div class="coin-input-box" style="margin-bottom:10px;">
+          <div class="coin-input-header">
+            <span class="coin-input-label"><div class="token-icon" style="font-size:8px;">LP</div> LP Tokens</span>
+            <span class="coin-input-balance" id="withdrawLPBalance" onclick="setMaxWithdrawLP()">Balance: --</span>
+          </div>
+          <div class="coin-input-row">
+            <input type="text" inputmode="decimal" class="coin-amount-input" id="withdrawLPAmount" placeholder="0.0" step="any" oninput="onWithdrawAmountChange()">
+          </div>
+          <div class="coin-preset-btns">
+            <button class="coin-preset-btn" onclick="setWithdrawPreset(0.25)">25%</button>
+            <button class="coin-preset-btn" onclick="setWithdrawPreset(0.50)">50%</button>
+            <button class="coin-preset-btn" onclick="setWithdrawPreset(0.75)">75%</button>
+            <button class="coin-preset-btn" onclick="setWithdrawPreset(1.0)">MAX</button>
+          </div>
+        </div>
+
+        <div id="withdrawSingleCoinWrap" style="display:none;">
+          <select class="withdraw-coin-select" id="withdrawCoinSelect" onchange="onWithdrawAmountChange()"></select>
+        </div>
+
+        <div class="withdraw-preview" id="withdrawPreview" style="display:none;">
+          <div class="preview-row"><span>Expected Output</span><span id="withdrawExpected">--</span></div>
+        </div>
+        <div class="withdraw-claim-row" id="withdrawClaimRow" style="display:none;">
+          <label class="checkbox-row">
+            <input type="checkbox" id="withdrawClaimCheckbox" onchange="onWithdrawClaimToggle()">
+            <span>Also claim pending rewards</span>
+            <span class="claim-pending-summary" id="withdrawClaimSummary"></span>
+          </label>
+        </div>
+        <div class="swap-detail-row gas-row"><span>Network fee</span><span id="withdrawGas" class="gas-value">--</span></div>
+        <button class="action-btn connect" id="withdrawSubmit" onclick="handleWithdrawSubmit()">Connect Wallet</button>
+      </div>
+    </div>
+
+    <!-- STAKE TAB -->
+    <div class="tab-content" id="tab-stake">
+      <div class="stake-section" id="stakeSection">
+        <div class="stake-info-grid">
+          <div class="stake-info-item">
+            <span class="stake-info-label">LP Balance</span>
+            <span class="stake-info-value" id="stakeLpBalance">--</span>
+          </div>
+          <div class="stake-info-item">
+            <span class="stake-info-label">Staked</span>
+            <span class="stake-info-value" id="stakedBalance">--</span>
+          </div>
+          <div class="stake-info-item">
+            <span class="stake-info-label">Earned CRV</span>
+            <span class="stake-info-value" id="earnedCRV" style="color:var(--green)">--</span>
+          </div>
+          <div class="stake-info-item">
+            <span class="stake-info-label">Gauge</span>
+            <span class="stake-info-value" id="gaugeAddress" style="font-size:10px;">--</span>
+          </div>
+        </div>
+        <div class="section-subtitle">Amount</div>
+        <div class="stake-input-row">
+          <input type="text" inputmode="decimal" class="stake-input" id="stakeAmountInput" placeholder="0.0 LP tokens" step="any">
+        </div>
+        <div class="coin-preset-btns" style="margin-bottom:10px;">
+          <button class="coin-preset-btn" onclick="setStakePreset(0.25)">25%</button>
+          <button class="coin-preset-btn" onclick="setStakePreset(0.50)">50%</button>
+          <button class="coin-preset-btn" onclick="setStakePreset(0.75)">75%</button>
+          <button class="coin-preset-btn" onclick="setStakePreset(1.0)">MAX</button>
+        </div>
+        <div class="swap-detail-row" id="stakeApySim" style="display:none;"><span>tAPR</span><span id="stakeApySimVal">--</span></div>
+        <div class="swap-detail-row gas-row"><span>Network fee (Stake)</span><span id="stakeGas" class="gas-value">--</span></div>
+        <div class="stake-actions">
+          <button class="stake-action-btn primary" onclick="handleStake()">Stake</button>
+          <button class="stake-action-btn" onclick="handleUnstake()">Unstake</button>
+        </div>
+        <button class="stake-action-btn" onclick="handleClaimRewards()" style="width:100%;margin-top:4px;background:var(--green-bg);color:var(--green);border-color:var(--green);">Claim CRV Rewards</button>
+        <div id="extraRewardsInfo" style="display:none;"></div>
+        <div id="noGaugeMsg" style="display:none;text-align:center;color:var(--text-dim);padding:20px;font-size:12px;">This pool has no gauge. Staking not available.</div>
+      </div>
+    </div>
+
+    <!-- DEPOSIT & STAKE TAB (combined flow: add_liquidity → approve LP → gauge.deposit) -->
+    <div class="tab-content" id="tab-deposit-and-stake" style="display:none;">
+      <div class="deposit-section">
+        <div class="slippage-row">
+          <span class="slippage-label">Slippage</span>
+          <div class="slippage-btns">
+            <button class="slippage-btn das-slip" data-slip="0.1">0.1%</button>
+            <button class="slippage-btn das-slip active" data-slip="0.5">0.5%</button>
+            <button class="slippage-btn das-slip" data-slip="1.0">1.0%</button>
+          </div>
+        </div>
+        <div class="section-subtitle">Add Liquidity &amp; Stake</div>
+        <div id="dasCoinInputs">
+          <div style="text-align:center;color:var(--text-dim);padding:20px;font-size:12px;">Select a pool to deposit &amp; stake</div>
+        </div>
+        <div class="deposit-preview" id="dasPreview" style="display:none;">
+          <div class="preview-row"><span>Expected LP Tokens</span><span id="dasExpectedLP">--</span></div>
+          <div class="preview-row"><span>Share of Pool</span><span id="dasShareOfPool">--</span></div>
+        </div>
+        <div class="swap-detail-row" id="dasApySim" style="display:none;"><span>tAPR</span><span id="dasApySimVal">--</span></div>
+        <div class="swap-detail-row gas-row"><span>Network fee (total)</span><span id="dasGas" class="gas-value">--</span></div>
+        <div id="dasStatus" style="display:none;font-size:11px;color:var(--text-dim);padding:8px 0;text-align:center;"></div>
+        <button class="action-btn connect" id="dasSubmit" onclick="handleDepositAndStakeSubmit()">Connect Wallet</button>
+        <div id="dasNoGaugeMsg" style="display:none;text-align:center;color:var(--text-dim);padding:12px;font-size:11px;">This pool has no gauge — use the Deposit tab instead.</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;text-align:center;">Two transactions: add_liquidity → gauge.deposit (with one-time LP approval).</div>
+      </div>
+    </div>
+
+    <!-- UNSTAKE TAB (uses gauge.withdraw, mirrors Stake form fields) -->
+    <div class="tab-content" id="tab-unstake" style="display:none;">
+      <div class="stake-section">
+        <div class="stake-info-grid">
+          <div class="stake-info-item">
+            <span class="stake-info-label">Staked</span>
+            <span class="stake-info-value" id="unstakeStakedBalance">--</span>
+          </div>
+          <div class="stake-info-item">
+            <span class="stake-info-label">LP Balance</span>
+            <span class="stake-info-value" id="unstakeLpBalance">--</span>
+          </div>
+          <div class="stake-info-item">
+            <span class="stake-info-label">Gauge</span>
+            <span class="stake-info-value" id="unstakeGaugeAddr" style="font-size:10px;">--</span>
+          </div>
+        </div>
+        <div class="section-subtitle">Amount to Unstake</div>
+        <div class="stake-input-row">
+          <input type="text" inputmode="decimal" class="stake-input" id="unstakeAmountInput" placeholder="0.0 LP tokens" step="any">
+        </div>
+        <div class="coin-preset-btns" style="margin-bottom:10px;">
+          <button class="coin-preset-btn" onclick="setUnstakePreset(0.25)">25%</button>
+          <button class="coin-preset-btn" onclick="setUnstakePreset(0.50)">50%</button>
+          <button class="coin-preset-btn" onclick="setUnstakePreset(0.75)">75%</button>
+          <button class="coin-preset-btn" onclick="setUnstakePreset(1.0)">MAX</button>
+        </div>
+        <div class="swap-detail-row gas-row"><span>Network fee</span><span id="unstakeGas" class="gas-value">--</span></div>
+        <button class="action-btn ready" id="unstakeSubmit" onclick="handleUnstakeFromUnstakeTab()">Unstake</button>
+        <div id="unstakeNoGaugeMsg" style="display:none;text-align:center;color:var(--text-dim);padding:12px;font-size:11px;">This pool has no gauge. Nothing to unstake.</div>
+      </div>
+    </div>
+
+    <!-- CLAIM REWARDS TAB — separate "Claim CRV" + "Claim Extras" rows (mirrors classical curve.finance) -->
+    <!-- INFO TAB — ratings & project context per pool token (aggregated, NFA) -->
+    <div class="tab-content" id="tab-info" style="display:none;">
+      <div class="info-tab-section">
+        <div class="info-empty" id="infoEmpty" style="text-align:center;color:var(--text-dim);padding:24px 8px;font-size:12px;">Select a pool to see token ratings &amp; reviews.</div>
+        <div class="info-cards" id="infoCardsContainer"></div>
+        <div class="info-disclaimer" id="infoDisclaimer" style="display:none;margin-top:14px;padding:10px 12px;border-left:3px solid var(--text-dim);color:var(--text-dim);font-size:11px;line-height:1.45;background:rgba(255,255,255,.02);">
+          <strong style="color:var(--text);">NFA — Not Financial Advice.</strong> Aggregated third-party assessments from <a href="https://pharos.watch/" target="_blank" rel="noopener">Pharos</a>, <a href="https://bluechip.org/" target="_blank" rel="noopener">Bluechip</a>, and <a href="https://portal.llamarisk.com/" target="_blank" rel="noopener">Llamarisk</a>, plus on-chain supply data from <a href="https://defillama.com/" target="_blank" rel="noopener">DefiLlama</a>. Verify on source sites before acting.
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-claim-rewards" style="display:none;">
+      <div class="stake-section">
+        <div class="stake-info-grid">
+          <div class="stake-info-item">
+            <span class="stake-info-label">Staked</span>
+            <span class="stake-info-value" id="claimStakedBalance">--</span>
+          </div>
+        </div>
+        <div class="pm-claim-list" id="yieldClaimList" style="margin-top:10px;">
+          <div class="pm-claim-row" id="yieldClaimCrvRow">
+            <span class="pm-claim-label">CRV</span>
+            <span class="pm-claim-amount" id="claimEarnedCRV">--</span>
+            <button class="pm-claim-btn" id="yieldClaimCrvBtn" onclick="handleClaimCRVFromYield()" disabled>Claim</button>
+          </div>
+          <!-- Extras row(s) injected by updateClaimTabUI(). -->
+        </div>
+        <div class="swap-detail-row gas-row"><span>Network fee</span><span id="claimGas" class="gas-value">--</span></div>
+        <div id="claimNoGaugeMsg" style="display:none;text-align:center;color:var(--text-dim);padding:12px;font-size:11px;">This pool has no gauge. Nothing to claim.</div>
+        <div id="claimSubmit" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Pool Details: Parameters -->
+    <div class="pool-details-section open" id="yieldPoolParams" style="display:none;">
+      <div class="pool-details-toggle" onclick="this.parentElement.classList.toggle('open')">
+        <h4>Pool Parameters</h4>
+        <span class="pool-details-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+      </div>
+      <div class="pool-details-body">
+        <div class="pd-grid">
+          <div class="pd-row"><span class="pd-label">Type</span><span class="pd-value" id="yieldInfoType">--</span></div>
+          <div class="pd-row"><span class="pd-label">A</span><span class="pd-value" id="yieldInfoAmpCoeff">--</span></div>
+          <div class="pd-row"><span class="pd-label">Virtual Price</span><span class="pd-value" id="yieldInfoVPrice">--</span></div>
+          <div class="pd-row"><span class="pd-label">24h Volume</span><span class="pd-value" id="yieldInfoVolume">--</span></div>
+          <div class="pd-row"><span class="pd-label">24h Fees</span><span class="pd-value" id="yieldInfoFees">--</span></div>
+          <div class="pd-row pd-full"><span class="pd-label">Pool</span><span class="pd-value" id="yieldInfoAddress">--</span></div>
+          <div class="pd-row pd-full"><span class="pd-label">LP Token</span><span class="pd-value" id="yieldInfoLpToken">--</span></div>
+          <div class="pd-row pd-full" id="yieldInfoGaugeRow" style="display:none"><span class="pd-label">Gauge</span><span class="pd-value" id="yieldInfoGauge">--</span></div>
+          <div class="pd-row" id="yieldInfoPctStakedRow" style="display:none"><span class="pd-label" title="Share of total LP supply currently staked in the gauge (gauge.totalSupply / pool.totalSupply)">% Staked</span><span class="pd-value" id="yieldInfoPctStaked">--</span></div>
+        </div>
+        <!-- Per-coin contract addresses (msg 245). Filled by updateYieldPoolInfo
+             from selectedPool.coinsAddresses + .coins. Each row shows symbol →
+             short addr (etherscan link) + copy button. -->
+        <div class="pd-coins" id="yieldInfoCoins" style="display:none;">
+          <div class="pd-coins-title">Token Contracts</div>
+          <div class="pd-coins-list" id="yieldInfoCoinsList"></div>
+        </div>
+        <div class="pool-action-links" id="yieldPoolLinks"></div>
+      </div>
+    </div>
+    <!-- Your Balances (bottom of /yield right column; mirrors /trade balancesSection — same dedup + hide-if-empty logic in yield.js) -->
+    <div class="balances-section" id="yieldBalancesSection" style="display:none;">
+      <div class="pool-info-title">In Wallet</div>
+      <div id="yieldBalancesList"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TRADE VIEW: Token Sidebar (Left)
+       ============================================================ -->
+  <div class="trade-token-sidebar" id="tradeTokenSidebar">
+    <div class="sidebar-search">
+      <div class="search-wrap">
+        <span class="search-icon"><svg class="icon"><use href="#icon-search"/></svg></span>
+        <input type="text" class="search-input" id="tradeTokenSearch" placeholder="Search tokens..." autocomplete="off">
+      </div>
+    </div>
+    <!-- /trade Favorites collapsible block removed in v=20260502f (same reason as /yield variant above). -->
+
+    <div class="sidebar-sort" id="tradeTokenSort">
+      <div class="sort-col sort-col-name" data-sort="pools">Token <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-tvl" data-sort="liquidity">TVL <span class="sort-arrow"></span></div>
+      <div class="sort-col sort-col-vol active" data-sort="volume">Vol <span class="sort-arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span></div>
+      <div class="sort-col sort-col-apy" data-sort="change">24H <span class="sort-arrow"></span></div>
+    </div>
+    <div class="trade-token-list" id="tradeTokenListSidebar"></div>
+    <div class="token-count" id="tradeTokenCount">-- tokens</div>
+  </div>
+
+  <!-- ============================================================
+       TRADE VIEW: Center (Chart) + Right (Swap)
+       ============================================================ -->
+  <div class="center-panel" id="view-trade-center" style="display:none;">
+    <div class="chart-header chart-header-binance" id="tradeChartHeader">
+      <div class="chart-header-row chart-header-top">
+        <button class="chart-fav-star" id="tradeFavStar" title="Add to favorites" type="button" aria-label="Toggle favorite" aria-pressed="false" onclick="toggleTradePairFavorite()"><svg class="icon"><use href="#icon-star-outline"/></svg></button>
+        <div class="chart-pair-icons">
+          <div class="pair-icon pair-icon-base" id="tradePairIconBase">?</div>
+          <div class="pair-icon pair-icon-quote" id="tradePairIconQuote">?</div>
+        </div>
+        <div class="chart-pair-block">
+          <div class="chart-pair" id="tradePairName" title="Change pair"><span class="pair-clickable pair-accent" onclick="openPairPicker('from')">--</span><span class="pair-divider"> / </span><span class="pair-clickable" onclick="openPairPicker('to')">--</span></div>
+          <div class="chart-pool-meta" id="tradePoolMeta">--</div>
+        </div>
+        <div class="chart-price-block">
+          <div class="chart-price" id="tradeChartPrice">--</div>
+          <div class="chart-price-sub" id="tradeChartPriceSub"></div>
+        </div>
+        <div class="chart-change-block">
+          <div class="chart-change" id="tradeChartChange">--</div>
+          <div class="chart-change-abs" id="tradeChartChangeAbs"></div>
+        </div>
+        <div class="chart-tags" id="tradeChartTags"></div>
+        <div class="chart-apr-pill" id="tradeChartAprPill" style="display:none;">APR <span id="tradeChartAprValue">--</span></div>
+      </div>
+      <div class="chart-header-row chart-header-stats" id="tradeHeaderStats">
+        <div class="stat-cell"><span class="stat-label">24h High</span><span class="stat-val stat-val-high" id="tradeChartHigh24">--</span></div>
+        <div class="stat-cell"><span class="stat-label">24h Low</span><span class="stat-val stat-val-low" id="tradeChartLow24">--</span></div>
+        <div class="stat-cell"><span class="stat-label">24h Vol(<span id="tradeChartVolBaseSym">base</span>)</span><span class="stat-val" id="tradeChartVolBase">--</span></div>
+        <div class="stat-cell"><span class="stat-label">24h Vol(<span id="tradeChartVolQuoteSym">USD</span>)</span><span class="stat-val" id="tradeChartVolQuote">--</span></div>
+        <div class="stat-cell"><span class="stat-label">Pool TVL</span><span class="stat-val" id="tradeChartPoolTvl">--</span></div>
+      </div>
+      <div id="tradeChartOHLCV" class="trade-header-ohlcv">
+        <span>O: <span id="tcO" style="color:var(--text)">--</span></span>
+        <span>H: <span id="tcH" style="color:#0ecb81">--</span></span>
+        <span>L: <span id="tcL" style="color:#f6465d">--</span></span>
+        <span>C: <span id="tcC" style="color:var(--text)">--</span></span>
+        <span>Vol: <span id="tradeChartVol" style="color:var(--accent)">--</span></span>
+      </div>
+    </div>
+    <div class="time-selector" id="tradeTimeSelector">
+      <button class="time-btn trade-time-btn" data-agg="1" data-unit="hour">1H</button>
+      <button class="time-btn trade-time-btn active" data-agg="4" data-unit="hour">4H</button>
+      <button class="time-btn trade-time-btn" data-agg="1" data-unit="day">1D</button>
+      <button class="time-btn trade-time-btn" data-agg="7" data-unit="day">1W</button>
+    </div>
+    <div class="chart-container" id="trade-pair-chart-container">
+      <div class="loading-center">Select a pair to view chart</div>
+    </div>
+    <div id="chartSourceLabel" style="font-size:10px;color:#848e9c;padding:2px 8px;"></div>
+  </div>
+
+  <div class="right-panel" id="view-trade-right" style="display:none;">
+    <h3 style="padding:12px 16px 0;color:var(--text);font-size:15px;">Swap</h3>
+    <div style="display:block;">
+      <div class="swap-section">
+        <!-- Slippage -->
+        <div class="slippage-row">
+          <span class="slippage-label">Slippage</span>
+          <div class="slippage-btns">
+            <button class="slippage-btn trade-slip" data-slip="0.1">0.1%</button>
+            <button class="slippage-btn trade-slip active" data-slip="0.5">0.5%</button>
+            <button class="slippage-btn trade-slip" data-slip="1.0">1.0%</button>
+          </div>
+          <input type="text" class="slippage-custom" id="tradeSlippageCustom" placeholder="%" maxlength="5">
+        </div>
+
+        <!-- From -->
+        <div class="swap-box" id="tradePairFromBox">
+          <div class="swap-box-label">
+            <span>From</span>
+            <span class="swap-box-balance" id="tradePairFromBal" onclick="setTradePairMax()">Balance: --</span>
+          </div>
+          <div class="swap-box-row">
+            <input type="text" inputmode="decimal" class="swap-amount-input" id="tradePairFromAmt" placeholder="0.0" step="any">
+            <button class="token-select" id="tradePairFromBtn" onclick="openTradeTokenModal('from')">
+              <div class="token-icon" id="tradePairFromIcon">?</div>
+              <span id="tradePairFromName">--</span>
+              <span class="arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preset buttons -->
+        <div class="preset-btns">
+          <button class="preset-btn" onclick="setTradePairPreset(0.25)">25%</button>
+          <button class="preset-btn" onclick="setTradePairPreset(0.50)">50%</button>
+          <button class="preset-btn" onclick="setTradePairPreset(0.75)">75%</button>
+          <button class="preset-btn" onclick="setTradePairPreset(1.0)">MAX</button>
+        </div>
+
+        <!-- Swap direction arrow -->
+        <div class="swap-arrow-wrap">
+          <div class="swap-arrow-btn" onclick="swapTradePairDirection()"><svg class="icon"><use href="#icon-swap-vertical"/></svg></div>
+        </div>
+
+        <!-- To -->
+        <div class="swap-box" id="tradePairToBox">
+          <div class="swap-box-label">
+            <span>To (estimated)</span>
+            <span class="swap-box-balance" id="tradePairToBal">Balance: --</span>
+          </div>
+          <div class="swap-box-row">
+            <input type="text" inputmode="decimal" class="swap-amount-input" id="tradePairToAmt" placeholder="0.0" readonly>
+            <button class="token-select" id="tradePairToBtn" onclick="openTradeTokenModal('to')">
+              <div class="token-icon" id="tradePairToIcon">?</div>
+              <span id="tradePairToName">--</span>
+              <span class="arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Swap details -->
+        <div class="swap-details" id="tradePairSwapDetails" style="display:none;">
+          <!-- Audit 2026-05-01 #10: subtle hint shown when amount=0 (CSS-driven via .swap-details-empty class). -->
+          <div class="swap-details-empty-hint" id="tradePairEmptyHint">Enter amount above to see rate, price impact &amp; gas estimate</div>
+          <div class="swap-detail-row"><span>Rate</span><span id="tradePairRate">--</span></div>
+          <div class="swap-detail-row"><span>Price Impact</span><span id="tradePairImpact">--</span></div>
+          <div class="swap-detail-row"><span>Route</span><span id="tradePairRouteInfo">--</span></div>
+          <div class="swap-detail-row gas-row" id="tradePairGasRow"><span>Network fee</span><span id="tradePairGas" class="gas-value">--</span></div>
+          <div class="swap-detail-row gas-sub-row" id="tradePairGasBreakdown" style="display:none;opacity:0.75;"><span id="tradePairGasApproveLbl">Approve</span><span id="tradePairGasApprove">--</span></div>
+          <div class="swap-detail-row gas-sub-row" id="tradePairGasSwapBreakdown" style="display:none;opacity:0.75;"><span>Swap</span><span id="tradePairGasSwap">--</span></div>
+        </div>
+
+        <!-- Route Visualization (SVG) -->
+        <div class="trade-route-viz" id="tradeRouteViz">
+          <div class="trade-route-viz-label">Route</div>
+          <div class="trade-route-path" id="tradeRoutePath"></div>
+        </div>
+
+        <!-- Aggregator Comparison (hidden via SHOW_QUOTE_COMPARISON flag in trade.js
+             until multiple aggregators are wired up; flip flag to re-enable) -->
+        <div class="trade-agg-compare" id="tradeAggCompare" style="display:none;">
+          <div class="trade-agg-label">Quote Comparison</div>
+          <div id="tradeAggRows"></div>
+        </div>
+
+        <!-- Submit -->
+        <button class="swap-submit connect" id="tradePairSubmit" onclick="handleTradePairSwap()">Connect Wallet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SWAP VIEW: Clean swap interface without chart
+       ============================================================ -->
+  <div class="center-panel" id="view-swap-center" style="display:none;">
+    <div class="swap-view-layout">
+      <!-- Left: Swap Card -->
+      <div class="swap-card">
+        <div class="swap-card-header">
+          <h3>Swap</h3>
+        </div>
+
+        <!-- Slippage -->
+        <div class="slippage-row">
+          <span class="slippage-label">Slippage</span>
+          <div class="slippage-btns">
+            <button class="slippage-btn swap-view-slip" data-slip="0.1">0.1%</button>
+            <button class="slippage-btn swap-view-slip active" data-slip="0.5">0.5%</button>
+            <button class="slippage-btn swap-view-slip" data-slip="1.0">1.0%</button>
+          </div>
+          <input type="text" class="slippage-custom" id="swapViewSlippageCustom" placeholder="%" maxlength="5">
+        </div>
+
+        <!-- From -->
+        <div class="swap-box">
+          <div class="swap-box-label">
+            <span>From</span>
+            <span class="swap-box-balance" id="swapViewFromBal" onclick="swapViewSetMax()">Balance: --</span>
+          </div>
+          <div class="swap-box-row">
+            <input type="text" inputmode="decimal" class="swap-amount-input" id="swapViewFromAmt" placeholder="0.0" step="any">
+            <button class="token-select" onclick="openSwapTokenModal('from')">
+              <div class="token-icon" id="swapViewFromIcon">?</div>
+              <span id="swapViewFromName">Select</span>
+              <span class="arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Presets -->
+        <div class="preset-btns">
+          <button class="preset-btn" onclick="swapViewSetPreset(0.25)">25%</button>
+          <button class="preset-btn" onclick="swapViewSetPreset(0.50)">50%</button>
+          <button class="preset-btn" onclick="swapViewSetPreset(0.75)">75%</button>
+          <button class="preset-btn" onclick="swapViewSetPreset(1.0)">MAX</button>
+        </div>
+
+        <!-- Direction arrow -->
+        <div class="swap-arrow-wrap">
+          <div class="swap-arrow-btn" onclick="swapViewDirection()"><svg class="icon"><use href="#icon-swap-vertical"/></svg></div>
+        </div>
+
+        <!-- To -->
+        <div class="swap-box">
+          <div class="swap-box-label">
+            <span>To (estimated)</span>
+            <span class="swap-box-balance" id="swapViewToBal">Balance: --</span>
+          </div>
+          <div class="swap-box-row">
+            <input type="text" inputmode="decimal" class="swap-amount-input" id="swapViewToAmt" placeholder="0.0" readonly>
+            <button class="token-select" onclick="openSwapTokenModal('to')">
+              <div class="token-icon" id="swapViewToIcon">?</div>
+              <span id="swapViewToName">Select</span>
+              <span class="arrow"><svg class="icon icon--sm"><use href="#icon-chevron-down"/></svg></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Swap details -->
+        <div class="swap-details" id="swapViewDetails" style="display:none;">
+          <div class="swap-detail-row"><span>Rate</span><span id="swapViewRate">--</span></div>
+          <div class="swap-detail-row"><span>Price Impact</span><span id="swapViewImpact">--</span></div>
+          <div class="swap-detail-row"><span>Route</span><span id="swapViewRouteInfo">--</span></div>
+          <div class="swap-detail-row gas-row" id="swapViewGasRow"><span>Network fee</span><span id="swapViewGas" class="gas-value">--</span></div>
+          <div class="swap-detail-row gas-sub-row" id="swapViewGasBreakdown" style="display:none;opacity:0.75;"><span id="swapViewGasApproveLbl">Approve</span><span id="swapViewGasApprove">--</span></div>
+          <div class="swap-detail-row gas-sub-row" id="swapViewGasSwapBreakdown" style="display:none;opacity:0.75;"><span>Swap</span><span id="swapViewGasSwap">--</span></div>
+        </div>
+
+        <!-- Submit -->
+        <button class="swap-submit connect" id="swapViewSubmit" onclick="handleSwapViewSubmit()">Connect Wallet</button>
+      </div>
+
+      <!-- Right: Route + Aggregator Panel -->
+      <div class="swap-route-panel">
+        <!-- Route Visualization -->
+        <div class="swap-route-card">
+          <h4>Route</h4>
+          <div class="trade-route-viz show" id="swapRouteViz" style="display:none;background:transparent;border:none;padding:0;margin:0;">
+            <div class="trade-route-path" id="swapRoutePath"></div>
+          </div>
+          <div class="swap-route-empty" id="swapRouteEmpty">Select tokens and enter amount to see the optimal route</div>
+        </div>
+
+        <!-- Aggregator Comparison (hidden via SHOW_QUOTE_COMPARISON_SWAP flag in swap.js
+             until multiple aggregators are wired up; flip flag to re-enable) -->
+        <div class="swap-route-card" id="swapQuoteComparisonCard" style="display:none;">
+          <h4>Quote Comparison</h4>
+          <div class="trade-agg-compare" id="swapAggCompare">
+            <div id="swapAggRows"></div>
+          </div>
+          <div id="swapAggEmpty" style="text-align:center;color:var(--text-dim);font-size:13px;padding:16px;">Enter an amount to compare quotes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRADE (SIMPLE SWAP) VIEW - legacy, hidden -->
+  <div class="trade-simple-view" id="view-trade-simple" style="display:none;">
+    <div class="trade-simple-wrap">
+      <h2>Swap</h2>
+      <div class="trade-simple-card">
+        <label>From</label>
+        <div class="ts-row">
+          <select id="tradeFromToken"></select>
+          <input type="text" inputmode="decimal" id="tradeFromAmount" placeholder="0.0" step="any">
+        </div>
+        <div class="trade-simple-bal">
+          <span>Balance: <span id="tradeFromBal">--</span></span>
+          <button onclick="setTradeMax()">MAX</button>
+        </div>
+      </div>
+      <div class="trade-simple-arrow">
+        <div class="swap-arrow-btn" onclick="swapTradeTokens()"><svg class="icon"><use href="#icon-swap-vertical"/></svg></div>
+      </div>
+      <div class="trade-simple-card">
+        <label>To</label>
+        <div class="ts-row">
+          <select id="tradeToToken"></select>
+          <input type="text" inputmode="decimal" id="tradeToAmount" placeholder="0.0" readonly>
+        </div>
+        <div class="trade-simple-bal">
+          <span>Balance: <span id="tradeToBal">--</span></span>
+          <span></span>
+        </div>
+      </div>
+      <div class="trade-simple-route" id="tradeRoute">
+        Best route: <span>--</span>
+      </div>
+      <div class="trade-simple-slippage">
+        <span>Slippage:</span>
+        <input type="number" value="0.5" id="tradeSlippage" step="0.1" min="0.01" max="50">
+        <span>%</span>
+      </div>
+      <button class="swap-submit connect" id="tradeExecBtn" onclick="executeTradeSwap()">Connect Wallet</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PORTFOLIO VIEW: Full-width center (no sidebar/right panel)
+       Populated by portfolio.js (Portfolio.open())
+       ============================================================ -->
+  <div class="view-portfolio" id="view-portfolio" style="display:none;">
+    <!-- Static header — always visible the moment view-portfolio becomes display:''
+         so user sees the page switch instantly, before async fetch fills #portfolio-content. -->
+    <div class="portfolio-header">
+      <h2 class="portfolio-title">Dashboard</h2>
+    </div>
+    <div id="portfolio-content"></div>
+  </div>
+
+</div>
+
+<!-- Mobile sidebar backdrop -->
+<div class="mobile-sidebar-backdrop" id="mobileSidebarBackdrop"></div>
+
+<!-- Token selector modal (Pools view) -->
+<div class="modal-overlay" id="tokenModal">
+  <div class="token-modal">
+    <div class="token-modal-header">
+      <h3>Select Token</h3>
+      <button class="token-modal-close" onclick="closeTokenModal()">&times;</button>
+    </div>
+    <div class="token-modal-list" id="tokenModalList"></div>
+  </div>
+</div>
+
+<!-- Token selector modal (Trade view -- all tokens) -->
+<div class="modal-overlay" id="tradeTokenModal">
+  <div class="token-modal">
+    <div class="token-modal-header">
+      <h3>Select Token</h3>
+      <button class="token-modal-close" onclick="closeTradeTokenModal()">&times;</button>
+    </div>
+    <div class="token-modal-search-wrap">
+      <input type="text" class="token-modal-search" id="tradeTokenSearchInput" placeholder="Search name or paste address..." autocomplete="off">
+    </div>
+    <div class="token-modal-list" id="tradeTokenModalList"></div>
+  </div>
+</div>
+
+<!-- Token selector modal (Swap view -- all tokens) -->
+<div class="modal-overlay" id="swapTokenModal">
+  <div class="token-modal">
+    <div class="token-modal-header">
+      <h3>Select Token</h3>
+      <button class="token-modal-close" onclick="closeSwapTokenModal()">&times;</button>
+    </div>
+    <div class="token-modal-search-wrap">
+      <input type="text" class="token-modal-search" id="swapTokenSearchInput" placeholder="Search name or paste address..." autocomplete="off">
+    </div>
+    <div class="token-modal-list" id="swapTokenModalList"></div>
+  </div>
+</div>
+
+<!-- JS modules: load in dependency order (defer preserves order, unblocks HTML parsing). Version injected from window.__APP_VERSION__ (single source of truth at top of <head>). -->
+<script>
+(function(){
+  const V = window.__APP_VERSION__;
+  ['app.js','gauge_weights.js','trade.js','swap.js','yield.js','aggregators.js','portfolio.js','panels.js','info_tab.js'].forEach(name => {
+    document.write(`<script defer src="${name}?v=${V}"><\/script>`);
+  });
+})();
+</script>
+<!-- Init after all deferred modules loaded -->
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  // Silent wallet auto-reconnect (no popup) if previously connected
+  if (typeof tryAutoReconnectWallet === 'function') tryAutoReconnectWallet();
+  init().then(startRefresh).then(() => {
+    if (!cacheMode) setTimeout(loadPriceChanges, 5000);
+  }).catch(e => console.error('Init error:', e));
+  // Deployed version indicator (single source: window.__APP_VERSION__)
+  const verLbl = document.getElementById('appVersionLabel');
+  const verBox = document.getElementById('appVersionIndicator');
+  if (verLbl && verBox) {
+    verLbl.textContent = 'v=' + window.__APP_VERSION__;
+    verBox.addEventListener('click', () => {
+      navigator.clipboard.writeText(window.__APP_VERSION__).then(() => {
+        const orig = verLbl.textContent;
+        verLbl.textContent = 'copied';
+        setTimeout(() => { verLbl.textContent = orig; }, 1200);
+      }).catch(()=>{});
+    });
+  }
+});
+</script>
+<!-- Deployed version indicator (bottom-right corner). Source of truth: window.__APP_VERSION__ at top of <head>. -->
+<div class="app-version-indicator" id="appVersionIndicator" title="Click to copy"><span id="appVersionLabel"></span></div>
+</body>
+</html>

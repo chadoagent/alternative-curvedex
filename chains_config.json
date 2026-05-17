@@ -1,0 +1,597 @@
+{
+  "generated_at": "2026-05-17T01:27:07+00:00",
+  "version": 1,
+  "source": {
+    "platforms": "https://api.curve.finance/api/getPlatforms",
+    "registry": "https://chainid.network/chains.json"
+  },
+  "chains": {
+    "ethereum": {
+      "curveKey": "ethereum",
+      "chainId": 1,
+      "name": "Ethereum Mainnet",
+      "shortName": "eth",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://ethereum-rpc.publicnode.com",
+        "https://mainnet.gateway.tenderly.co",
+        "https://rpc.flashbots.net"
+      ],
+      "explorer": "https://etherscan.io",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "ethereum",
+      "registries": [
+        "main",
+        "factory",
+        "crypto",
+        "factory-crypto",
+        "factory-crvusd",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": true,
+        "stakedao": true,
+        "cow": true
+      },
+      "convexBooster": null,
+      "crvAddress": "0xD533a949740bb3306d119cc777fa900ba034cd52",
+      "poolCount": 2206
+    },
+    "polygon": {
+      "curveKey": "polygon",
+      "chainId": 137,
+      "name": "Polygon Mainnet",
+      "shortName": "pol",
+      "nativeCurrency": {
+        "name": "POL",
+        "symbol": "POL",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://polygon.drpc.org",
+        "https://rpc-mainnet.matic.quiknode.pro",
+        "https://polygon-bor-rpc.publicnode.com",
+        "https://polygon.gateway.tenderly.co",
+        "https://rpcfree.com/polygon-rpc"
+      ],
+      "explorer": "https://polygonscan.com",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "polygon",
+      "registries": [
+        "main",
+        "factory",
+        "crypto",
+        "factory-crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": true,
+        "stakedao": false,
+        "cow": true
+      },
+      "convexBooster": "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
+      "crvAddress": "0x172370d5Cd63279eFa6d502DAB29171933a610AF",
+      "poolCount": 1465
+    },
+    "arbitrum": {
+      "curveKey": "arbitrum",
+      "chainId": 42161,
+      "name": "Arbitrum One",
+      "shortName": "arb1",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://arb1.arbitrum.io/rpc",
+        "https://arbitrum-one-rpc.publicnode.com"
+      ],
+      "explorer": "https://arbiscan.io",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "arbitrum",
+      "registries": [
+        "main",
+        "factory",
+        "crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": true,
+        "stakedao": true,
+        "cow": true
+      },
+      "convexBooster": "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
+      "crvAddress": "0x11cDb42B0EB46D95f990BeDD4695A6e3fA034978",
+      "poolCount": 584
+    },
+    "avalanche": {
+      "curveKey": "avalanche",
+      "chainId": 43114,
+      "name": "Avalanche C-Chain",
+      "shortName": "avax",
+      "nativeCurrency": {
+        "name": "Avalanche",
+        "symbol": "AVAX",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://api.avax.network/ext/bc/C/rpc",
+        "https://avalanche-c-chain-rpc.publicnode.com"
+      ],
+      "explorer": "https://snowscan.xyz",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "avalanche",
+      "registries": [
+        "main",
+        "factory",
+        "crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 155
+    },
+    "optimism": {
+      "curveKey": "optimism",
+      "chainId": 10,
+      "name": "OP Mainnet",
+      "shortName": "oeth",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://mainnet.optimism.io",
+        "https://optimism-rpc.publicnode.com",
+        "https://optimism.gateway.tenderly.co",
+        "https://optimism.drpc.org"
+      ],
+      "explorer": "https://optimistic.etherscan.io",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "optimism",
+      "registries": [
+        "main",
+        "factory",
+        "crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": false,
+        "stakedao": true,
+        "cow": true
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 226
+    },
+    "xdai": {
+      "curveKey": "xdai",
+      "chainId": 100,
+      "name": "Gnosis",
+      "shortName": "gno",
+      "nativeCurrency": {
+        "name": "xDAI",
+        "symbol": "XDAI",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.gnosischain.com",
+        "https://rpc.gnosis.gateway.fm",
+        "https://gnosis.api.onfinality.io/public"
+      ],
+      "explorer": "https://gnosisscan.io",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "xdai",
+      "registries": [
+        "main",
+        "factory",
+        "crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": true
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 139
+    },
+    "aurora": {
+      "curveKey": "aurora",
+      "chainId": 1313161554,
+      "name": "Aurora Mainnet",
+      "shortName": "aurora",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://mainnet.aurora.dev",
+        "https://aurora.drpc.org"
+      ],
+      "explorer": "https://explorer.aurora.dev",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "aurora",
+      "registries": [
+        "main",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 1
+    },
+    "moonbeam": {
+      "curveKey": "moonbeam",
+      "chainId": 1284,
+      "name": "Moonbeam",
+      "shortName": "mbeam",
+      "nativeCurrency": {
+        "name": "Glimmer",
+        "symbol": "GLMR",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.api.moonbeam.network",
+        "https://moonbeam.api.onfinality.io/public",
+        "https://moonbeam.unitedbloc.com",
+        "https://moonbeam-rpc.publicnode.com"
+      ],
+      "explorer": "https://moonbeam.moonscan.io",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "moonbeam",
+      "registries": [
+        "main",
+        "factory"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 29
+    },
+    "kava": {
+      "curveKey": "kava",
+      "chainId": 2222,
+      "name": "Kava",
+      "shortName": "kava",
+      "nativeCurrency": {
+        "name": "Kava",
+        "symbol": "KAVA",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://evm.kava.io",
+        "https://kava-evm-rpc.publicnode.com",
+        "https://evm.kava-rpc.com",
+        "https://rpc.ankr.com/kava_evm"
+      ],
+      "explorer": "https://kavascan.com",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "kava",
+      "registries": [
+        "main",
+        "factory",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 26
+    },
+    "celo": {
+      "curveKey": "celo",
+      "chainId": 42220,
+      "name": "Celo Mainnet",
+      "shortName": "celo",
+      "nativeCurrency": {
+        "name": "CELO",
+        "symbol": "CELO",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://forno.celo.org"
+      ],
+      "explorer": "https://celoscan.io",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "celo",
+      "registries": [
+        "factory",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 55
+    },
+    "base": {
+      "curveKey": "base",
+      "chainId": 8453,
+      "name": "Base",
+      "shortName": "base",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://mainnet.base.org/",
+        "https://developer-access-mainnet.base.org/",
+        "https://base.gateway.tenderly.co",
+        "https://base-rpc.publicnode.com"
+      ],
+      "explorer": "https://basescan.org",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "base",
+      "registries": [
+        "factory",
+        "factory-crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": false,
+        "stakedao": true,
+        "cow": true
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 747
+    },
+    "fraxtal": {
+      "curveKey": "fraxtal",
+      "chainId": 252,
+      "name": "Fraxtal",
+      "shortName": "frax",
+      "nativeCurrency": {
+        "name": "Frax",
+        "symbol": "FRAX",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.frax.com",
+        "https://fraxtal-rpc.publicnode.com"
+      ],
+      "explorer": "https://fraxscan.com",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "fraxtal",
+      "registries": [
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": true,
+        "stakedao": true,
+        "cow": false
+      },
+      "convexBooster": "0xd3327cb05a8E0095A543D582b5B3Ce3e19270389",
+      "crvAddress": "0x331B9182088e2A7d6D3Fe4742AbA1fB231aEcc56",
+      "poolCount": 248
+    },
+    "bsc": {
+      "curveKey": "bsc",
+      "chainId": 56,
+      "name": "BNB Smart Chain Mainnet",
+      "shortName": "bnb",
+      "nativeCurrency": {
+        "name": "BNB Chain Native Token",
+        "symbol": "BNB",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://bsc-dataseed1.bnbchain.org",
+        "https://bsc-dataseed2.bnbchain.org",
+        "https://bsc-dataseed3.bnbchain.org",
+        "https://bsc-dataseed4.bnbchain.org",
+        "https://bsc-dataseed1.defibit.io",
+        "https://bsc-dataseed2.defibit.io"
+      ],
+      "explorer": "https://bscscan.com",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "bsc",
+      "registries": [
+        "factory",
+        "factory-crypto",
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": false,
+        "stakedao": false,
+        "cow": true
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 283
+    },
+    "x-layer": {
+      "curveKey": "x-layer",
+      "chainId": 196,
+      "name": "X Layer Mainnet",
+      "shortName": "okb",
+      "nativeCurrency": {
+        "name": "X Layer Global Utility Token",
+        "symbol": "OKB",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.xlayer.tech",
+        "https://xlayerrpc.okx.com"
+      ],
+      "explorer": "https://www.oklink.com/xlayer",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "x-layer",
+      "registries": [
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 30
+    },
+    "mantle": {
+      "curveKey": "mantle",
+      "chainId": 5000,
+      "name": "Mantle",
+      "shortName": "mantle",
+      "nativeCurrency": {
+        "name": "Mantle",
+        "symbol": "MNT",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.mantle.xyz",
+        "https://mantle-rpc.publicnode.com"
+      ],
+      "explorer": "https://mantlescan.xyz",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "mantle",
+      "registries": [
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 3
+    },
+    "sonic": {
+      "curveKey": "sonic",
+      "chainId": 146,
+      "name": "Sonic Mainnet",
+      "shortName": "sonic",
+      "nativeCurrency": {
+        "name": "Sonic",
+        "symbol": "S",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.soniclabs.com",
+        "https://sonic-rpc.publicnode.com"
+      ],
+      "explorer": "https://sonicscan.org",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "sonic",
+      "registries": [
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": true,
+        "convex": false,
+        "stakedao": true,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 172
+    },
+    "hyperliquid": {
+      "curveKey": "hyperliquid",
+      "chainId": 999,
+      "name": "Wanchain Testnet",
+      "shortName": "twan",
+      "nativeCurrency": {
+        "name": "Wancoin",
+        "symbol": "WAN",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://gwan-ssl.wandevs.org:46891/"
+      ],
+      "explorer": "https://testnet.wanscan.org",
+      "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "curveSlug": "hyperliquid",
+      "registries": [
+        "factory-twocrypto",
+        "factory-tricrypto",
+        "factory-stable-ng"
+      ],
+      "aggregators": {
+        "merkl": false,
+        "convex": false,
+        "stakedao": false,
+        "cow": false
+      },
+      "convexBooster": null,
+      "crvAddress": null,
+      "poolCount": 56
+    }
+  }
+}

@@ -1,0 +1,3959 @@
+/* ============================================================
+   CSS RESET & VARIABLES
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0b0e11;
+  --card: #1e2329;
+  --card-hover: #252a31;
+  --card-border: #2b3139;
+  --text: #eaecef;
+  --text-dim: #848e9c;
+  --text-muted: #5e6673;
+  --accent: #f0b90b;
+  --accent-hover: #f8d12f;
+  --green: #0ecb81;
+  --green-bg: rgba(14,203,129,0.1);
+  --red: #f6465d;
+  --red-bg: rgba(246,70,93,0.1);
+  --blue: #1e90ff;
+  --font-mono: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
+  --radius: 6px;
+  --transition: 0.15s ease;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+input, button, select { font-family: inherit; }
+
+/* ============================================================
+   SVG ICON UTILITY (sprite via <use href="#icon-name"/>)
+   width/height = 1em → scales with parent font-size like emoji.
+   ============================================================ */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.icon--filled { fill: currentColor; stroke: none; }
+.icon--sm { font-size: 0.875em; }
+.icon--lg { font-size: 1.25em; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4049; }
+
+/* ============================================================
+   TOP HEADER BAR
+   ============================================================ */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 44px;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+  gap: 16px;
+  flex-shrink: 0;
+}
+.logo {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+}
+.logo span { color: var(--text); font-weight: 400; }
+.header-nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.nav-link {
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  transition: all var(--transition);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); text-decoration: none; }
+.nav-link.active { color: var(--accent); background: rgba(240,185,11,0.1); }
+.dashboard-btn { background: transparent; }
+.dashboard-btn:hover { background: rgba(240,185,11,0.08); }
+.dashboard-btn.active { color: var(--accent); border-color: var(--accent); }
+@media (max-width: 1024px) { .dashboard-btn { display: none !important; } }
+/* Chain picker (network switcher) — sits left of the Connect Wallet button.
+   Uses the same Curve token-icon pattern (PNG from curve-assets CDN with
+   initial-letter fallback if the asset 404s). */
+.chain-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.chain-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 4px 6px 4px 4px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.chain-picker-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+.chain-picker-btn[aria-expanded="true"] { border-color: var(--accent); }
+.chain-picker-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
+  background: rgba(255,255,255,0.06);
+}
+.chain-picker-icon[hidden] { display: none; }
+.chain-picker-fallback {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(240,185,11,0.18);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+}
+.chain-picker-fallback[data-active] { display: inline-flex; }
+.chain-picker-caret { color: var(--text-dim); flex-shrink: 0; }
+.chain-picker-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  z-index: 100;
+  padding: 4px;
+}
+.chain-picker-menu[hidden] { display: none; }
+.chain-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.chain-picker-option:hover { background: rgba(255,255,255,0.06); }
+.chain-picker-option.active { background: rgba(240,185,11,0.12); color: var(--accent); }
+.chain-picker-option-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.chain-picker-option-fallback {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(240,185,11,0.18);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 600px) { .chain-picker-btn .chain-picker-caret { display: none; } }
+
+.header-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex: 1;
+  overflow-x: auto;
+  justify-content: left;
+}
+.header-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+}
+.header-stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.header-stat-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+.wallet-btn {
+  background: var(--accent);
+  color: #0b0e11;
+  border: none;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition);
+}
+.wallet-btn:hover { background: var(--accent-hover); }
+.wallet-btn.connected {
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.wallet-btn .wallet-btn-text { display: inline; }
+.wallet-btn:not(.connected) .wallet-btn-icon { display: none; }
+.wallet-btn.connected .wallet-btn-icon { display: inline-flex; align-items: center; margin-right: 6px; vertical-align: middle; font-size: 1.5em; }
+.wallet-btn-caret {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9px;
+  opacity: 0.7;
+  transition: transform 0.2s;
+}
+.wallet-btn[aria-expanded="true"] .wallet-btn-caret {
+  transform: rotate(180deg);
+}
+
+/* ============================================================
+   MAIN 3-COLUMN LAYOUT
+   ============================================================ */
+.main-layout {
+  display: grid;
+  /* Sidebar widened 450 -> 632px in Phase 2 (msg 282 Alexandr) to fit
+   * WT + ΔW + FW columns by default, no manual resize required. */
+  grid-template-columns: 632px 1fr 380px;
+  height: calc(100vh - 44px);
+}
+.main-layout.no-sidebar {
+  grid-template-columns: 1fr 380px;
+}
+.main-layout.no-sidebar .sidebar {
+  display: none;
+}
+.main-layout.no-sidebar .center-panel {
+  grid-column: 1;
+}
+.main-layout.no-sidebar .right-panel {
+  grid-column: 2;
+}
+/* Trade view: show token sidebar instead of pool sidebar */
+.main-layout.trade-active {
+  grid-template-columns: 300px 1fr 380px;
+}
+.main-layout.trade-active .sidebar {
+  display: none;
+}
+@media (min-width: 1025px) {
+  .main-layout.trade-active .trade-token-sidebar {
+    display: flex;
+  }
+  .main-layout:not(.trade-active) .trade-token-sidebar {
+    display: none;
+  }
+}
+
+/* ============================================================
+   LEFT: POOL SIDEBAR (shared between views)
+   ============================================================ */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--card-border);
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+}
+.sidebar-search {
+  padding: 8px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.search-input {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 7px 10px 7px 30px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.search-input:focus { border-color: var(--accent); }
+.search-wrap { position: relative; }
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 12px;
+  pointer-events: none;
+}
+.sidebar-filters {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--card-border);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.filter-btn {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.filter-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.filter-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(240,185,11,0.1); }
+.sidebar-sort {
+  display: flex;
+  /* Left padding 8px (sidebar) + 18px (star icon column in pool-item) + 4px gap = 30px,
+     so header columns align with row columns. Right padding stays 8px. */
+  padding: 4px 8px 4px 30px;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.02);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.sort-col {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: color var(--transition);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+.sort-col:hover { color: var(--text); }
+.sort-col.active { color: var(--accent); }
+/* Audit 2026-05-01 #13: empty sort arrows on inactive columns get a faint
+ * caret hint on hover so users learn the column is sortable (only TOTAL was
+ * showing a caret, making other columns appear non-sortable). */
+.sort-col .sort-arrow { display: inline-flex; min-width: 12px; }
+.sort-col:not(.active):hover .sort-arrow::before {
+  content: '\25BE';
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+.sort-col:not(.active) .sort-arrow:empty::before { content: ''; }
+/* Header widths SYNCED with .pool-item-* (zz). Mismatch caused header labels
+   to drift from data columns visible in tester msg 243. */
+.sort-col-name { flex: 0 0 130px; width: 130px; }
+/* Numeric headers: center-aligned per tester @Alexandr_Petryashev msg 265 (only TVL...ΔW). */
+.sort-col-rating { width: 32px; text-align: center; }
+.sort-col-tvl { width: 52px; text-align: center; }
+.sort-col-vol { width: 52px; text-align: center; }
+.sort-col-apy { width: 42px; text-align: center; }
+.sort-col-gauge { width: 52px; text-align: center; line-height: 1.0; font-size: 9px; }
+/* TOTAL: shift left ~6px to tighten visual gap from CRV/EXT (Алекс UI cleanup 2026-05-15). */
+.sort-col-total-apy { width: 68px; text-align: center; margin-left: -6px; }
+.sort-col-weight { width: 40px; text-align: center; }
+.sort-col-weight-delta { width: 56px; text-align: center; }
+.sort-col-weight-forecast { width: 44px; text-align: center; }
+/* Center the chevron arrow within centered header label */
+.sort-col-rating, .sort-col-tvl, .sort-col-vol, .sort-col-apy, .sort-col-gauge,
+.sort-col-total-apy, .sort-col-weight, .sort-col-weight-delta,
+.sort-col-weight-forecast {
+  justify-content: center;
+}
+
+.deposit-simulator {
+  display: none;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+.deposit-simulator.visible { display: flex; }
+.deposit-simulator label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.deposit-simulator input {
+  width: 90px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.deposit-simulator input:focus { border-color: var(--accent); }
+.deposit-simulator .sim-hint {
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.pool-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.pool-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #151920;
+  transition: background var(--transition);
+  gap: 4px;
+  min-height: 36px;
+}
+/* /yield view has 2 extra columns (WT + ΔW) — tighter gap so ΔW не обрезается на узких sidebar (msg 239 Nik) */
+body.page-yield .pool-item,
+body.page-yield .sidebar-sort { gap: 4px; }
+.pool-item:hover { background: var(--card-hover); }
+.pool-item.active { background: rgba(240,185,11,0.08); border-left: 2px solid var(--accent); }
+/* Deprecated row (Curve API gauge.is_killed=true). Soft de-emphasis: 0.55 opacity
+   on the row, but keep ⚠️ badge fully opaque so the warning stands out. */
+.pool-item.pool-deprecated { opacity: 0.55; }
+.pool-item.pool-deprecated:hover { opacity: 0.8; }
+.pool-deprecated-badge { opacity: 1 !important; font-size: 11px; line-height: 1; flex-shrink: 0; cursor: help; }
+.pool-item-info {
+  flex: 0 0 130px;
+  width: 130px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pool-item-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pool-item-coins {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Pool-type chip — used to render the registry type (f-stab, f-twoc, main, etc.)
+ * INSIDE the right-side pool detail panel (Pool Parameters → Type row).
+ * Per tester @Alexandr_Petryashev msg 245 it was removed from the inline pool
+ * row to reduce alignment noise. The badge now lives only in the detail panel.
+ * Kept .pool-item-type for any historical fallback; .pool-type-badge is the
+ * canonical class going forward.
+ */
+.pool-item-type,
+.pool-type-badge {
+  display: inline-block;
+  font-size: 9px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.05);
+  padding: 1px 5px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+.pool-item-tvl {
+  width: 52px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+.pool-item-vol {
+  width: 52px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+.pool-item-apy {
+  width: 42px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--green);
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+/* RATING column — minimum Pharos grade across pool coins (conservative).
+   Position: after POOL, before TVL. Width SYNCED with .sort-col-rating. */
+.pool-item-rating {
+  width: 32px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pool-rating-pill {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 9.5px;
+  color: #0d1117;
+  min-width: 18px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+.pool-rating-pill.grade-A { background: #16c784; }
+.pool-rating-pill.grade-B { background: #9ada6a; }
+.pool-rating-pill.grade-C { background: #e0a64a; }
+.pool-rating-pill.grade-D { background: #e87a43; }
+.pool-rating-pill.grade-F { background: #ea3943; }
+.pool-item-apy.high { color: var(--green); }
+.pool-item-apy.medium { color: var(--accent); }
+.pool-item-apy.low { color: var(--red); }
+.pool-item-gauge-ext {
+  width: 52px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+  gap: 1px;
+}
+.pool-item-gauge-ext .pig-crv { color: var(--blue); }
+.pool-item-gauge-ext .pig-ext { color: #a855f7; }
+.pool-item-total-apy {
+  width: 68px;
+  /* Shift left ~6px to tighten visual gap from CRV/EXT (synced with .sort-col-total-apy). */
+  margin-left: -6px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  flex-grow: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.pool-item-total-apy.high { color: var(--green); }
+.pool-item-total-apy.medium { color: #d4a726; }
+.pool-item-total-apy.low { color: var(--text-dim); }
+/* Empty-cell placeholder: thin dim em-dash. Per tester @Alexandr_Petryashev msg 252 — выбрал
+   "тонкий dim" вариант. Один em-dash в правой стороне cell, низкая opacity, унаследованный color
+   колонки — присутствие минимальное, layout не качается. */
+.cell-empty {
+  display: inline-block;
+  width: 100%;
+  text-align: right;
+  color: inherit;
+  opacity: 0.25;
+}
+/* Reserve space for src-badge (Sd/Cx) so total-apy numbers don't shift when badge is absent */
+.pool-item-total-apy .src-badge-slot {
+  min-width: 16px;
+  display: inline-block;
+  text-align: left;
+}
+/* Collapse the slot if empty so merkl-badge sits flush against the APR number
+   (no phantom 16px gap on pools that have ONLY merkl, no src-badge). */
+.pool-item-total-apy .src-badge-slot:empty { display: none; }
+.src-badge {
+  display: inline-block;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 2px;
+  letter-spacing: 0.3px;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.src-badge.src-c  { background: rgba(58,123,213,0.15); color: #3a7bd5; }
+.src-badge.src-cx { background: rgba(168,85,247,0.15); color: #a855f7; }
+.src-badge.src-sd { background: rgba(245,158,11,0.18); color: #f59e0b; }
+.merkl-badge {
+  display: inline-block;
+  font-size: 7px;
+  font-weight: 700;
+  color: #b07aff;
+  background: rgba(176,122,255,0.12);
+  padding: 0 3px;
+  border-radius: 2px;
+  letter-spacing: 0.3px;
+  line-height: 14px;
+  vertical-align: middle;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+.pool-count {
+  padding: 6px 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--card-border);
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+   TRADE VIEW: CENTER PANEL (Chart + Trades)
+   ============================================================ */
+.center-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  gap: 8px;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+/* Binance-style two-row header (Trade + Pools view) — reference April-25 */
+.chart-header-binance {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px 14px 8px;
+  gap: 6px;
+}
+.chart-header-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.chart-header-top { gap: 14px; }
+.chart-header-stats {
+  gap: 22px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  border-top: 1px solid var(--card-border);
+  margin-top: 2px;
+  padding-top: 6px;
+}
+.chart-header-stats .stat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
+}
+.chart-header-stats .stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: none;
+}
+.chart-header-stats .stat-val {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+}
+.chart-header-stats .stat-val-high { color: #0ecb81; }
+.chart-header-stats .stat-val-low { color: #f6465d; }
+
+/* Token icon stack (overlapping circles) */
+.chart-pair-icons {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.pair-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2b3139 0%, #1e2329 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border: 1.5px solid var(--card);
+  background-size: cover;
+  background-position: center;
+  text-transform: uppercase;
+}
+.pair-icon-quote { margin-left: -8px; z-index: 1; }
+.pair-icon-base  { z-index: 2; }
+/* Multi-coin stacked icons (3rd, 4th coin) used in yield header for tri/tetra pools */
+.chart-pair-icons .pair-icon[data-idx="2"] { margin-left: -8px; z-index: 0; }
+.chart-pair-icons .pair-icon[data-idx="3"] { margin-left: -8px; z-index: -1; }
+
+.chart-pair-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.chart-pair {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.chart-pair .pair-accent { color: var(--accent); }
+.pair-clickable { cursor: pointer; user-select: none; transition: color 0.15s, opacity 0.15s; }
+.pair-clickable:hover { opacity: 0.82; text-decoration: underline; text-decoration-color: rgba(240,185,11,0.5); text-underline-offset: 3px; }
+.pair-clickable:active { opacity: 0.65; }
+/* External-link icon to the right of pool tickers — opens curve.finance
+   deposit page for this pool. Tester 266249857 (2026-05-01). */
+.pool-curve-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  /* Mobile-friendly tap target: 24x24 hit area while keeping 14px icon visible.
+   * Audit 2026-05-01 #11: 12px target was too small. */
+  min-width: 24px;
+  min-height: 24px;
+  padding: 5px;
+  border-radius: 4px;
+  color: var(--text-dim);
+  text-decoration: none;
+  vertical-align: -2px;
+  transition: color 0.15s, opacity 0.15s, background 0.15s;
+}
+.pool-curve-link:hover { color: var(--accent); opacity: 1; background: rgba(255,255,255,0.06); }
+.pool-curve-link:active { opacity: 0.7; }
+.pool-curve-link .icon { width: 14px; height: 14px; }
+/* Divider between per-token clickables — not clickable, no hover */
+.pair-divider { color: var(--text-dim); user-select: none; cursor: default; }
+.chart-pool-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.chart-price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-left: 6px;
+  line-height: 1.05;
+}
+.chart-price {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.chart-price-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  margin-top: 1px;
+}
+
+.chart-change-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-mono);
+  line-height: 1.15;
+}
+.chart-change {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  align-self: flex-start;
+}
+.chart-change.up   { color: var(--green); background: var(--green-bg); }
+.chart-change.down { color: var(--red);   background: var(--red-bg); }
+.chart-change-abs {
+  font-size: 10px;
+  color: var(--text-dim);
+  padding-left: 1px;
+}
+.chart-change-abs.up   { color: var(--green); }
+.chart-change-abs.down { color: var(--red); }
+
+.chart-apr-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(14,203,129,0.18), rgba(240,185,11,0.14));
+  color: #f0b90b;
+  border: 1px solid rgba(240,185,11,0.35);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.chart-apr-pill #tradeChartAprValue,
+.chart-apr-pill #poolChartAprValue { color: #ffd84a; margin-left: 3px; }
+
+/* Favorite star (framed ⭐ — Trade + Pools view) */
+.chart-fav-star {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: #6b7280;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.1s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.chart-fav-star:hover {
+  color: #fbbf24;
+  border-color: rgba(251,191,36,0.5);
+  background: rgba(251,191,36,0.08);
+}
+.chart-fav-star:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 1px;
+}
+.chart-fav-star.active {
+  color: #fbbf24;
+  border-color: rgba(245,158,11,0.55);
+  background: rgba(251,191,36,0.12);
+  text-shadow: 0 0 8px rgba(251,191,36,0.55);
+}
+.chart-fav-star.active:hover {
+  color: #f59e0b;
+  background: rgba(245,158,11,0.18);
+  transform: scale(1.06);
+}
+
+/* Tag badges (chart header) */
+.chart-tags {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.chart-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.chart-tag-stable    { background: rgba(14,203,129,0.15);  color: #0ecb81; border-color: rgba(14,203,129,0.25); }
+.chart-tag-crypto    { background: rgba(96,165,250,0.15);  color: #60a5fa; border-color: rgba(96,165,250,0.25); }
+.chart-tag-crvusd    { background: rgba(168,85,247,0.15);  color: #a855f7; border-color: rgba(168,85,247,0.25); }
+.chart-tag-verified  { background: rgba(34,197,94,0.15);   color: #22c55e; border-color: rgba(34,197,94,0.25); }
+.chart-tag-hot       { background: rgba(245,158,11,0.15);  color: #f59e0b; border-color: rgba(245,158,11,0.25); }
+.chart-tag-htvl      { background: rgba(168,85,247,0.15);  color: #a855f7; border-color: rgba(168,85,247,0.25); }
+.chart-tag-new       { background: rgba(245,158,11,0.15);  color: #f59e0b; border-color: rgba(245,158,11,0.25); }
+.chart-tag-active    { background: rgba(96,165,250,0.15);  color: #60a5fa; border-color: rgba(96,165,250,0.25); }
+
+/* Sidebar Favorites section (pool sidebar) */
+.pool-list-section-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-dim);
+  padding: 8px 12px 4px;
+  font-weight: 600;
+  background: rgba(245,158,11,0.04);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--card-border);
+}
+.pool-list-section-header.favorites { color: #f59e0b; }
+.pool-list-section-header.all-pools { background: transparent; color: var(--text-dim); }
+.pool-item.is-favorite { box-shadow: inset 2px 0 0 #f59e0b; }
+.pool-item-fav-star {
+  color: #f59e0b;
+  margin-right: 4px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* Fixed-width OHLCV values to prevent layout jump on crosshair hover */
+#chartOHLCV span span, #tradeChartOHLCV span span {
+  display: inline-block;
+  min-width: 70px;
+  text-align: left;
+}
+
+.trade-header-ohlcv {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+  border-top: 1px solid rgba(43,49,57,0.4);
+}
+
+@media (max-width: 760px) {
+  .chart-header-binance { padding: 6px 10px; }
+  .chart-header-top { gap: 8px; }
+  .chart-price { font-size: 22px; }
+  .chart-pool-meta { display: none; }
+  .chart-header-stats { gap: 12px; }
+  .chart-header-stats .stat-cell { min-width: 58px; }
+  .pair-icon { width: 22px; height: 22px; font-size: 10px; }
+}
+
+.time-selector {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  gap: 2px;
+  background: #12161c;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.time-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all var(--transition);
+}
+.time-btn:hover { color: var(--text); background: rgba(240,185,11,0.08); }
+.time-btn.active { color: var(--accent); background: rgba(240,185,11,0.15); }
+.version-label {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding-right: 8px;
+  user-select: none;
+  opacity: 0.7;
+}
+
+.chart-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Trades table */
+.trades-section {
+  display: flex;
+  flex-direction: column;
+  max-height: 35vh;
+  min-height: 120px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--card-border);
+}
+.trades-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+}
+.trades-header h3 {
+  font-size: 12px;
+  font-weight: 600;
+}
+.trades-table-wrap {
+  overflow-y: auto;
+  /* Audit 2026-05-01 #14: allow horizontal scroll if Tx column overflows
+   * narrow right panel (was clipped at 1440px viewport). */
+  overflow-x: auto;
+  flex: 1;
+}
+table.trades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  /* Audit 2026-05-01 #14: prevent fixed widths from forcing Tx off-screen. */
+  table-layout: auto;
+}
+/* Audit 2026-05-01 #14: shrink Tx hash column to fit common 1440px viewport.
+ * Was: clipped because table-layout filled with no overflow. Now uses tighter
+ * font/padding so all 6 columns visible without horizontal scroll on
+ * standard right-panel widths (~370-450px). */
+table.trades-table th:last-child,
+table.trades-table td:last-child {
+  text-align: right;
+  padding: 3px 4px 3px 2px;
+  /* Cap Tx column width and clip the hash visually with ellipsis on
+   * narrow panels so the link stays clickable but doesn't push the table
+   * horizontally. */
+  max-width: 70px;
+  width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+table.trades-table .tx-link {
+  font-size: 9.5px;
+  letter-spacing: -0.2px;
+  color: var(--accent);
+  opacity: 0.85;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+table.trades-table .tx-link:hover { opacity: 1; }
+/* Tighten other numeric columns too — Price/Amount/USD (3rd-5th th). */
+table.trades-table th:nth-child(3),
+table.trades-table td:nth-child(3),
+table.trades-table th:nth-child(4),
+table.trades-table td:nth-child(4),
+table.trades-table th:nth-child(5),
+table.trades-table td:nth-child(5) {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+/* Audit 2026-05-01 #10: subtle hint inside .swap-details when amount=0. */
+.swap-details-empty-hint {
+  display: none;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+  padding: 6px 0 4px;
+  opacity: 0.7;
+  text-align: center;
+}
+.swap-details.empty-amount .swap-details-empty-hint { display: block; }
+table.trades-table th {
+  position: sticky;
+  top: 0;
+  background: #161a1e;
+  color: var(--text-dim);
+  font-weight: 500;
+  text-align: left;
+  padding: 4px 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--card-border);
+  z-index: 1;
+}
+table.trades-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid #1a1e24;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
+}
+table.trades-table tr:hover { background: rgba(255,255,255,0.02); }
+.trade-buy { color: var(--green); }
+.trade-sell { color: var(--red); }
+.trade-deposit { color: var(--green); }
+.trade-withdraw { color: #f97316; }
+.trades-filter {
+  display: flex;
+  gap: 4px;
+}
+.trades-chip {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.trades-chip:hover { color: var(--text); border-color: var(--text-dim); }
+.trades-chip.active { background: rgba(240,185,11,0.1); color: var(--accent); border-color: var(--accent); }
+.tx-link { color: var(--text-dim); font-size: 10px; }
+.tx-link:hover { color: var(--accent); }
+
+/* ============================================================
+   TRADE VIEW: RIGHT PANEL (Swap)
+   ============================================================ */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--card-border);
+  background: var(--bg);
+  overflow-y: auto;
+  position: relative;
+}
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--card);
+  flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-bottom: 2px solid transparent;
+}
+.panel-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* /yield two-level tabs (curve.finance UX): Top = DEPOSIT | WITHDRAW, Sub = action variants */
+.yield-tabs-top {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--card);
+  padding: 0 14px;
+  flex-shrink: 0;
+}
+.yt-top {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 12px 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--transition);
+}
+.yt-top:hover { color: var(--text); }
+.yt-top.active { color: var(--text); border-bottom-color: var(--accent); }
+.yield-tabs-sub {
+  display: flex;
+  gap: 18px;
+  padding: 8px 14px 4px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--card-border);
+}
+.yt-sub {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition);
+}
+.yt-sub:hover { color: var(--text-dim); }
+.yt-sub.active { color: var(--accent); border-bottom-color: var(--accent); }
+@media (max-width: 600px) {
+  .yield-tabs-top { gap: 14px; overflow-x: auto; padding: 0 10px; }
+  .yt-top { font-size: 12px; padding: 10px 0; white-space: nowrap; }
+  .yield-tabs-sub { gap: 12px; overflow-x: auto; padding: 6px 10px 4px; }
+  .yt-sub { font-size: 11px; white-space: nowrap; }
+}
+
+/* Swap section */
+.swap-section { padding: 12px; border-bottom: 1px solid var(--card-border); }
+.swap-box {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+  transition: border-color var(--transition);
+}
+.swap-box:focus-within { border-color: var(--accent); }
+.swap-box-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.swap-box-balance { cursor: pointer; transition: color var(--transition); }
+.swap-box-balance:hover { color: var(--accent); }
+.swap-box-row { display: flex; align-items: center; gap: 8px; }
+.swap-amount-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  outline: none;
+  min-width: 0;
+}
+.swap-amount-input::placeholder { color: var(--text-muted); }
+.swap-amount-input::-webkit-outer-spin-button,
+.swap-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.swap-amount-input[type=number] { -moz-appearance: textfield; }
+.token-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2b3139;
+  border: none;
+  border-radius: 20px;
+  padding: 5px 10px 5px 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+.token-select:hover { background: #363d47; }
+.token-select .arrow { font-size: 8px; color: var(--text-dim); }
+.token-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.swap-arrow-wrap {
+  display: flex;
+  justify-content: center;
+  margin: -4px 0;
+  position: relative;
+  z-index: 2;
+}
+.swap-arrow-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--card);
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 14px;
+  transition: all var(--transition);
+}
+.swap-arrow-btn:hover { color: var(--accent); background: var(--card-hover); transform: rotate(180deg); }
+.preset-btns { display: flex; gap: 4px; margin-bottom: 10px; }
+.preset-btn {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-mono);
+}
+.preset-btn:hover { color: var(--accent); border-color: var(--accent); }
+.swap-details {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+.swap-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  color: var(--text-dim);
+}
+.swap-detail-row span:last-child {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+.swap-detail-row.gas-row {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.swap-detail-row.gas-row .gas-value {
+  font-weight: 600;
+}
+.swap-detail-row.gas-row .gas-value.loading {
+  opacity: 0.6;
+}
+.swap-detail-row.gas-row .gas-value.error {
+  color: var(--text-dim);
+  font-style: italic;
+  font-weight: 400;
+}
+.swap-detail-row.gas-sub-row {
+  padding: 1px 0 1px 8px;
+}
+.withdraw-claim-row { padding: 8px 0; }
+.withdraw-claim-row .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.withdraw-claim-row .checkbox-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.withdraw-claim-row .claim-pending-summary {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-left: auto;
+  font-family: var(--font-mono);
+}
+.slippage-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.slippage-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.slippage-btns { display: flex; gap: 3px; flex: 1; }
+.slippage-btn {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 3px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.slippage-btn:hover { color: var(--text); }
+.slippage-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(240,185,11,0.1); }
+.slippage-custom {
+  width: 50px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 5px;
+  outline: none;
+  text-align: right;
+}
+.slippage-custom:focus { border-color: var(--accent); }
+
+/* Trade Simple (full-width swap) view */
+.trade-simple-view {
+  display: none;
+  grid-column: 2 / 4;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.trade-simple-wrap {
+  max-width: 480px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+.trade-simple-wrap h2 {
+  color: var(--text);
+  margin: 0 0 24px;
+  font-size: 20px;
+}
+.trade-simple-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 8px;
+  transition: border-color var(--transition);
+}
+.trade-simple-card:focus-within { border-color: var(--accent); }
+.trade-simple-card label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.trade-simple-card .ts-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.trade-simple-card select {
+  background: #2b3139;
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  min-width: 120px;
+  transition: border-color var(--transition);
+}
+.trade-simple-card select:focus { border-color: var(--accent); }
+.trade-simple-card input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  outline: none;
+  min-width: 0;
+}
+.trade-simple-card input::placeholder { color: var(--text-muted); }
+.trade-simple-card input::-webkit-outer-spin-button,
+.trade-simple-card input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.trade-simple-card input { -moz-appearance: textfield; }
+.trade-simple-bal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+.trade-simple-bal button {
+  background: rgba(240,185,11,0.1);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all var(--transition);
+}
+.trade-simple-bal button:hover { background: rgba(240,185,11,0.2); }
+.trade-simple-arrow {
+  display: flex;
+  justify-content: center;
+  margin: -4px 0;
+  position: relative;
+  z-index: 2;
+}
+.trade-simple-route {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.trade-simple-route span { color: var(--accent); font-family: var(--font-mono); }
+.trade-simple-slippage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.trade-simple-slippage input {
+  width: 60px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 6px;
+  outline: none;
+  text-align: right;
+}
+.trade-simple-slippage input:focus { border-color: var(--accent); }
+
+/* ============================================================
+   TRADE VIEW: Token Pair List (sidebar items)
+   ============================================================ */
+.pair-item {
+  display: grid;
+  grid-template-columns: 1fr 60px 55px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--card-border);
+  cursor: pointer;
+  transition: background var(--transition);
+  font-size: 12px;
+}
+.pair-item:hover { background: var(--card-hover); }
+.pair-item.active { background: rgba(240,185,11,0.08); border-left: 2px solid var(--accent); }
+.pair-item-info {
+  overflow: hidden;
+  min-width: 0;
+}
+.pair-item-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pair-item-pool {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pair-item-tvl {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+}
+.pair-item-change {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.pair-item-change.up { color: var(--green); }
+.pair-item-change.down { color: var(--red); }
+.pair-item-change.neutral { color: var(--text-dim); }
+
+.swap-submit, .action-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.swap-submit.connect, .action-btn.connect {
+  background: var(--accent);
+  color: #0b0e11;
+}
+.swap-submit.connect:hover, .action-btn.connect:hover { background: var(--accent-hover); }
+.swap-submit.swap-ready, .action-btn.ready {
+  background: var(--accent);
+  color: #0b0e11;
+}
+.swap-submit.swap-ready:hover, .action-btn.ready:hover { background: var(--accent-hover); }
+.swap-submit.disabled, .action-btn.disabled {
+  background: var(--card);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Pool info section in right panel (trade view) */
+.pool-info-section { padding: 0; border-top: 1px solid var(--card-border); }
+.pool-info-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.pool-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pool-info-item { display: flex; flex-direction: column; gap: 2px; }
+.pool-info-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+.pool-info-value { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+
+/* Pool details collapsible sections */
+.pool-details-section { border-top: 1px solid var(--card-border); }
+.pool-details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+.pool-details-toggle:hover { background: rgba(255,255,255,0.02); }
+.pool-details-toggle h4 {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pool-details-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+.pool-details-section.open .pool-details-arrow { transform: rotate(180deg); }
+.pool-details-body {
+  display: none;
+  padding: 0 12px 10px;
+}
+.pool-details-section.open .pool-details-body { display: block; }
+.pd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.pd-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 11px; }
+.pd-label { color: var(--text-muted); }
+.pd-value {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.pd-value a { color: var(--accent); }
+.pd-full { grid-column: 1 / -1; }
+
+/* ============================================================
+ * Per-coin contract addresses + copy buttons (msg 245).
+ * Each row: symbol (left) — short addr link (etherscan) + copy icon (right).
+ * Reused for the Pool / LP / Gauge addresses too via the .addr-copy-btn class.
+ * ============================================================ */
+.pd-coins {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.pd-coins-title {
+  color: var(--text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+.pd-coins-list { display: flex; flex-direction: column; gap: 4px; }
+.pd-coin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  gap: 6px;
+}
+.pd-coin-sym {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.pd-coin-sym .token-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.pd-coin-addr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pd-coin-addr a { color: var(--accent); }
+.addr-copy-btn {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  margin: 0;
+  cursor: pointer;
+  /* Match address text luminance (--text) so the icon is clearly visible on
+   * dark panel; --text-dim was too faint and looked invisible on JPEG. */
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  line-height: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.addr-copy-btn:hover {
+  color: var(--accent);
+  background: rgba(255,255,255,0.12);
+  /* Audit 2026-05-01 #12: clearer affordance — slight scale + outline on hover. */
+  outline: 1px solid rgba(255,255,255,0.18);
+  transform: scale(1.06);
+}
+.addr-copy-btn.copied { color: var(--green); }
+/* Icon size is fixed at 13px instead of inheriting 1em (~13.3px) to keep
+ * stroke weight visually consistent across all addr-copy-btn instances. */
+.addr-copy-btn .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 1.6;
+}
+/* Tooltip flash "copied" — appears briefly after click. */
+.addr-copy-btn::after {
+  content: attr(data-flash);
+  position: absolute;
+  margin-left: 18px;
+  margin-top: -1px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--green);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.addr-copy-btn.copied::after { opacity: 1; }
+
+/* Token balances bars */
+.token-balance-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 11px;
+  border-bottom: 1px solid var(--card-border);
+}
+.token-balance-row:last-child { border-bottom: none; }
+.token-balance-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.token-balance-info { flex: 1; min-width: 0; }
+.token-balance-name { font-weight: 600; font-size: 11px; }
+.token-balance-bar {
+  height: 4px;
+  background: var(--card-border);
+  border-radius: 2px;
+  margin-top: 2px;
+  overflow: hidden;
+}
+.token-balance-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.token-balance-vals {
+  text-align: right;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.token-balance-pct {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* APY breakdown mini-table */
+.apy-breakdown { margin-top: 4px; }
+.apy-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
+.apy-row-label { color: var(--text-dim); }
+.apy-row-value { font-family: var(--font-mono); font-weight: 500; }
+.apy-row-value.green { color: var(--green); }
+.apy-row-value.blue { color: var(--blue); }
+.apy-row-value.purple { color: #b07aff; }
+.apy-row.total { border-top: 1px solid var(--card-border); margin-top: 2px; padding-top: 4px; }
+.apy-row.total .apy-row-label { color: var(--text); font-weight: 600; }
+.apy-row.total .apy-row-value { color: var(--green); font-weight: 700; }
+
+/* Pool action links */
+.pool-action-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pool-action-link {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(240,185,11,0.08);
+  color: var(--accent);
+  text-decoration: none;
+  transition: background var(--transition);
+}
+.pool-action-link:hover { background: rgba(240,185,11,0.15); text-decoration: none; }
+
+/* Balances section */
+.balances-section { padding: 12px; }
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #151920;
+}
+.balance-token { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
+.balance-amount { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+
+/* Token selector modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.token-modal {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  width: 360px;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+.token-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--card-border);
+}
+.token-modal-header h3 { font-size: 14px; }
+.token-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.token-modal-close:hover { color: var(--text); }
+.token-modal-list { overflow-y: auto; flex: 1; }
+.token-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.token-modal-item:hover { background: var(--card-hover); }
+.token-modal-item .token-name { font-weight: 600; font-size: 13px; }
+.token-modal-item .token-addr { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+.token-modal-search {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  margin: 0;
+}
+.token-modal-search:focus { border-color: var(--accent); }
+.token-modal-search-wrap { padding: 8px 16px; }
+.token-modal-item .token-pools { font-size: 10px; color: var(--text-dim); }
+/* Wrapper around symbol/addr/pools so the balance can be right-aligned */
+.token-modal-item .token-modal-info { flex: 1; min-width: 0; }
+/* Right-side balance + USD value (only rendered when wallet holds the token) */
+.token-modal-item .token-bal {
+  margin-left: auto;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.token-modal-item .token-bal .token-usd {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+/* ODOS-Style SVG Route Visualization */
+.trade-route-viz {
+  background: rgba(30, 35, 41, 0.6);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  display: none;
+}
+.trade-route-viz.show { display: block; }
+.trade-route-viz-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.trade-route-path svg {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.route-svg-node {
+  opacity: 0;
+  animation: routeNodeFadeIn 0.3s ease forwards;
+}
+@keyframes routePathDraw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes routeNodeFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Sankey route diagram */
+.sankey-route {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.sankey-route path {
+  transition: opacity 0.2s ease;
+}
+.sankey-route path:hover {
+  opacity: 0.9 !important;
+}
+@media (max-width: 768px) {
+  .sankey-route text {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    paint-order: stroke;
+    stroke: rgba(0,0,0,0.55);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+  }
+}
+@media (max-width: 480px) {
+  .sankey-route .route-svg-node circle { r: 8; }
+}
+
+/* Aggregator Comparison */
+.trade-agg-compare {
+  margin: 8px 0;
+  display: none;
+}
+.trade-agg-compare.show { display: block; }
+.trade-agg-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.trade-agg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  font-size: 12px;
+  cursor: default;
+  transition: border-color var(--transition);
+}
+.trade-agg-row.best {
+  border-color: var(--accent);
+  background: #f0b90b0a;
+}
+.trade-agg-row .agg-source {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+}
+.trade-agg-row .agg-amount {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+.trade-agg-row .agg-via {
+  color: var(--text-dim);
+  font-size: 10px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trade-agg-row .agg-badge {
+  background: var(--accent);
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+/* ============================================================
+   YIELD VIEW: CENTER PANEL
+   ============================================================ */
+/* Deprecated-pool banner for gauge.is_killed=true. Yellow background mirrors
+   the original curve.finance "IRONBANK PROTOCOL DEPRECATED" alert so existing
+   Curve users immediately recognise the warning. Soft amber on dark-mode bg
+   instead of the bright #f0b90b which clashes with our accent. */
+.yield-deprecated-banner {
+  background: rgba(240, 185, 11, 0.16);
+  border-left: 3px solid #f0b90b;
+  color: #f0b90b;
+  padding: 8px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 4px;
+  margin: 8px 12px 10px;
+}
+.yield-deprecated-banner strong { color: #f0b90b; font-weight: 600; }
+.yield-header {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 14px 8px;
+  gap: 4px;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.yield-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+.yield-header .chart-fav-star {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+.yield-pool-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.yield-pool-name .pool-accent { color: var(--accent); }
+.yield-kpi-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 2px 0 0;
+}
+.yield-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.yield-kpi-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+}
+.yield-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.yield-kpi-value.green { color: var(--green); }
+.yield-kpi-value.accent { color: var(--accent); }
+.yield-kpi-value.blue { color: var(--blue); }
+
+/* Gauge Weight KPI tile: top is current %, gw-meta below shows Δ + rank */
+.yield-kpi-weight .yield-kpi-value { color: var(--accent); }
+.gw-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.2;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.gw-up { color: var(--green); }
+.gw-down { color: var(--red); }
+.gw-flat { color: var(--text-dim); }
+
+/* Inline pool-list weight cells — split into two: WT (current %) + ΔW (signed weekly delta).
+   Per tester @Alexandr_Petryashev msg 265: ΔW shoulb be same font-size as WT main (10px),
+   spans separated visually so digits не слипались. */
+.pool-item-weight,
+.pool-item-weight-delta,
+.pool-item-weight-forecast {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  flex-grow: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.pool-item-weight { width: 40px; }
+.pool-item-weight-delta { width: 56px; }
+.pool-item-weight-forecast { width: 44px; }
+.pool-item-weight .gw-pct { color: var(--accent); font-weight: 600; font-size: 10px; }
+/* WT cell tags for killed/new gauges (Алекс crvecodev/502 — fill the otherwise
+   empty WT cell with a status pill so users see why the weight is 0). */
+.gw-tag-killed { color: var(--red); font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+.gw-tag-new { color: var(--text-dim); font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+/* Add small left-margin between delta-number span and arrow span — avoids visual stick. */
+.pool-item-weight-delta > span + span { margin-left: 3px; }
+.pool-item-weight .gw-up,
+.pool-item-weight-delta .gw-up { color: var(--green); }
+.pool-item-weight .gw-down,
+.pool-item-weight-delta .gw-down { color: var(--red); }
+.pool-item-weight-delta .gw-flat { color: var(--text-dim); opacity: 0.6; }
+/* Forecast cell: muted color + italic to signal "estimate, not on-chain". */
+/* gw-forecast: next-week weight from on-chain vote slopes (authoritative, not
+   extrapolation). Distinct dim color separates it visually from current
+   weight, but we drop the italic+asterisk styling since it is real data. */
+.pool-item-weight-forecast .gw-forecast { color: var(--text-muted); font-weight: 600; font-size: 10px; opacity: 0.92; }
+
+/* Right-aligned group: Convex / StakeDAO / TVL pushed to right via auto margin */
+.yield-kpi.yield-kpi-right-first { margin-left: auto; }
+/* Clickable KPI cells (Convex/StakeDAO) — only get visible affordance when data-href is set */
+.kpi-clickable { cursor: default; }
+.kpi-clickable[data-href] {
+  cursor: pointer;
+  padding: 2px 8px 2px 6px;
+  margin: -2px -2px -2px -4px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+/* Always-on dotted underline on label so user sees "this is a link" without hovering */
+.kpi-clickable[data-href] .yield-kpi-label,
+.kpi-clickable[data-href] .yield-provider-label {
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+/* External-link arrow ↗ appended to value */
+.kpi-clickable[data-href] .yield-kpi-value::after,
+.kpi-clickable[data-href] .yield-provider-value::after {
+  content: " \2197";
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.65;
+  margin-left: 2px;
+  display: inline-block;
+}
+.kpi-clickable[data-href]:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--card-border);
+}
+.kpi-clickable[data-href]:hover .yield-kpi-value,
+.kpi-clickable[data-href]:hover .yield-provider-value {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.kpi-clickable[data-href]:hover .yield-kpi-value::after,
+.kpi-clickable[data-href]:hover .yield-provider-value::after { opacity: 1; }
+.kpi-clickable[data-href]:active { opacity: 0.6; }
+
+/* Top-right providers group inside .yield-header-row (Convex / StakeDAO) */
+.yield-header-providers {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.yield-provider {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.yield-provider-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+.yield-provider-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Swap view: Alpha v0.1 bar above swap card */
+.swap-version-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 16px 0;
+}
+.swap-version-bar .version-label { margin-left: 0; padding-right: 0; }
+
+/* Chart tabs (yield) */
+.chart-tabs {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  gap: 2px;
+  background: #12161c;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.chart-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+.chart-tab:hover { color: var(--text); background: rgba(240,185,11,0.08); }
+.chart-tab.active { color: var(--accent); background: rgba(240,185,11,0.15); }
+
+/* Pool composition */
+.composition-section {
+  border-top: 1px solid var(--card-border);
+  max-height: 28vh;
+  min-height: 100px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.composition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.composition-header h3 { font-size: 12px; font-weight: 600; }
+.composition-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 12px;
+}
+.comp-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--card-border); }
+.comp-item:last-child { border-bottom: none; }
+.comp-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.comp-info { flex: 1; min-width: 0; }
+.comp-symbol { font-size: 12px; font-weight: 600; }
+.comp-balance { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+.comp-pct { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
+
+/* ============================================================
+   YIELD VIEW: RIGHT PANEL (Deposit/Withdraw/Stake)
+   ============================================================ */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.section-subtitle {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.coin-input-group { margin-bottom: 8px; }
+.coin-input-box {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  transition: border-color var(--transition);
+}
+.coin-input-box:focus-within { border-color: var(--accent); }
+.coin-input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.coin-input-label { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.coin-input-balance { font-size: 10px; color: var(--text-dim); cursor: pointer; font-family: var(--font-mono); }
+.coin-input-balance:hover { color: var(--accent); }
+.coin-input-row { display: flex; align-items: center; gap: 6px; }
+.coin-amount-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  outline: none;
+  min-width: 0;
+}
+.coin-amount-input::placeholder { color: var(--text-muted); }
+.coin-amount-input::-webkit-outer-spin-button,
+.coin-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.coin-amount-input[type=number] { -moz-appearance: textfield; }
+.coin-preset-btns { display: flex; gap: 3px; margin-top: 6px; }
+.coin-preset-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.coin-preset-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Preview rows */
+.deposit-preview, .withdraw-preview {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 11px;
+}
+.preview-row { display: flex; justify-content: space-between; padding: 3px 0; color: var(--text-dim); }
+.preview-row span:last-child { color: var(--text); font-family: var(--font-mono); }
+
+/* Withdraw mode toggle */
+.withdraw-mode-toggle { display: flex; gap: 4px; margin-bottom: 10px; }
+.mode-btn {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+}
+.mode-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.mode-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(240,185,11,0.1); }
+.withdraw-coin-select {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12px;
+  outline: none;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.withdraw-coin-select:focus { border-color: var(--accent); }
+.withdraw-coin-select option { background: var(--card); color: var(--text); }
+
+/* Stake section */
+.stake-section { padding: 12px; }
+.stake-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.stake-info-item { display: flex; flex-direction: column; gap: 2px; }
+.stake-info-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+.stake-info-value { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.stake-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+.stake-action-btn {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.stake-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.stake-action-btn.primary { background: var(--accent); color: #0b0e11; border-color: var(--accent); }
+.stake-action-btn.primary:hover { background: var(--accent-hover); }
+.stake-input-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.stake-input {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+  min-width: 0;
+}
+.stake-input:focus { border-color: var(--accent); }
+.stake-input::placeholder { color: var(--text-muted); }
+
+/* Withdraw-tab gauge actions (Unstake + Claim mirrored from Stake tab) */
+.withdraw-gauge-actions { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--card-border); }
+.withdraw-gauge-divider { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.withdraw-gauge-info { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 4px 8px; align-items: center; margin-bottom: 8px; font-size: 11px; }
+.withdraw-gauge-info-label { color: var(--text-muted); }
+.withdraw-gauge-info-value { font-family: var(--font-mono); font-size: 11px; text-align: right; }
+
+/* Pool links (yield) */
+.pool-links { padding: 12px; border-top: 1px solid var(--card-border); }
+.pool-link-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: var(--text-dim); }
+.pool-link-row span:last-child { color: var(--text); font-family: var(--font-mono); }
+
+/* Deposit/Withdraw section padding */
+.deposit-section, .withdraw-section { padding: 12px; }
+
+/* ============================================================
+   SKELETON / LOADING
+   ============================================================ */
+.skeleton {
+  background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 3px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.loading-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 12px;
+  gap: 8px;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--card-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.pool-skeleton-item {
+  display: grid;
+  grid-template-columns: 1fr 50px 50px 50px;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+.pool-skeleton-item .skeleton { height: 14px; }
+.pool-skeleton-item .skeleton:nth-child(1) { width: 80%; }
+.pool-skeleton-item .skeleton:nth-child(2) { width: 60%; }
+.pool-skeleton-item .skeleton:nth-child(3) { width: 50%; }
+.pool-skeleton-item .skeleton:nth-child(4) { width: 40%; }
+
+/* ============================================================
+   TRADE TOKEN SIDEBAR
+   ============================================================ */
+.trade-token-sidebar {
+  display: none;
+  flex-direction: column;
+  border-right: 1px solid var(--card-border);
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+}
+.trade-token-sidebar .sidebar-search {
+  padding: 8px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+/* Trade token list — reuses .pool-item and .sidebar-sort styles from Pools sidebar */
+.trade-token-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* Favorites section in trade sidebar */
+.sidebar-favorites {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(240,185,11,0.04);
+  max-height: 30vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-favorites-title {
+  padding: 8px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #f0b90b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(240,185,11,0.15);
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sidebar-favorites-title:hover { background: rgba(240,185,11,0.08); }
+.fav-collapse-arrow {
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.18s ease;
+}
+.sidebar-favorites.collapsed .fav-collapse-arrow { transform: rotate(-90deg); }
+.sidebar-favorites.collapsed .sidebar-favorites-list { display: none; }
+.sidebar-favorites.collapsed { max-height: none; }
+.sidebar-favorites-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar-fav-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: background var(--transition);
+  font-size: 12px;
+}
+.sidebar-fav-item:hover { background: rgba(240,185,11,0.08); }
+.sidebar-fav-item.active { background: rgba(240,185,11,0.12); border-left: 2px solid var(--accent); }
+.sidebar-fav-item .sidebar-fav-icons {
+  display: inline-flex;
+  align-items: center;
+}
+.sidebar-fav-item .sidebar-fav-icons img {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+}
+.sidebar-fav-item .sidebar-fav-icons img:not(:first-child) {
+  margin-left: -6px;
+}
+.sidebar-fav-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-fav-tvl {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.sidebar-fav-empty {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.token-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+/* Overlapping pool coin icons (like curve.finance) */
+.pool-item-name .token-icon:not(:first-child) {
+  margin-left: -6px;
+}
+.pool-item-name .token-icon {
+  border: 1.5px solid var(--bg);
+}
+/* Legacy token-item-col — unused, kept for compat */
+.token-item-col {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.token-item-col.positive { color: #0ecb81; }
+.token-item-col.negative { color: #f6465d; }
+.token-item-col.pools { color: var(--text-dim); }
+.token-count {
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   SWAP VIEW
+   ============================================================ */
+.main-layout.swap-active.no-sidebar {
+  grid-template-columns: 1fr;
+}
+.main-layout.swap-active .center-panel {
+  overflow-y: auto;
+  grid-column: 1 / -1;
+}
+
+.swap-view-layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
+  padding: 32px 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  align-content: start;
+}
+
+.swap-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 420px;
+  height: fit-content;
+  /* Tester 266249857 (2026-05-01): bumped 11px-equivalent base up to 13px so
+     copy stays readable across resolutions. Children use em so they scale
+     proportionally — px would render unevenly at 1.25x / 1.5x DPR. */
+  font-size: 13px;
+}
+.swap-card .swap-section { border-bottom: none; padding: 0; }
+/* Em-relative font sizes inside the swap card — scale together with the
+   .swap-card root font-size (13px). Outside the card the original px values
+   apply (Trade view has its own swap-section). */
+.swap-card .swap-box-label { font-size: 0.85em; }
+.swap-card .swap-amount-input { font-size: 1.55em; }
+.swap-card .token-select { font-size: 1em; }
+.swap-card .token-icon { font-size: 0.7em; }
+/* 2026-05-01 (Alexandr feedback msg 352, 358): inline 10px on
+   #swapViewGasBreakdown / tradePairGasBreakdown removed in HTML;
+   bump em-cascade so swap-card children scale with 13px root. */
+.swap-card .swap-details { font-size: 1em; }
+.swap-card .swap-detail-row.gas-sub-row { font-size: 0.85em; }
+.swap-card .slippage-label { font-size: 0.92em; }
+.swap-card .slippage-btn,
+.swap-card .slippage-custom { font-size: 0.85em; }
+.swap-card .withdraw-claim-row .checkbox-row { font-size: 1em; }
+.swap-card .withdraw-claim-row .claim-pending-summary { font-size: 0.92em; }
+
+.swap-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.swap-card-header h3 {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+.swap-route-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.swap-route-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+.swap-route-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+/* Override route viz styles inside swap route card — match Trade size */
+.swap-route-card .trade-route-viz {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.swap-route-card .trade-route-path {
+  min-height: auto;
+}
+.swap-route-card .sankey-route {
+  min-height: auto;
+  width: 100%;
+  height: auto;
+}
+.swap-route-card .trade-agg-compare {
+  margin: 0;
+}
+.swap-route-card .trade-agg-compare.show {
+  display: block;
+}
+
+.swap-route-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   MOBILE RESPONSIVE
+   ============================================================ */
+@media (max-width: 1024px) {
+  html, body {
+    height: auto;
+    overflow: auto;
+  }
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    gap: 8px;
+  }
+  .header-stats { display: none; }
+  .main-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+  /* Trade simple: full width on mobile */
+  .trade-simple-view {
+    grid-column: unset;
+    width: 100%;
+  }
+  .trade-simple-wrap { margin: 20px auto; }
+  /* Sidebar: hidden by default, overlay when toggled */
+  .sidebar {
+    display: none;
+    border-right: none;
+  }
+  .sidebar.mobile-open {
+    display: flex;
+    position: fixed;
+    top: 44px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: var(--bg);
+    max-height: none;
+  }
+  /* Swap view: stack on mobile */
+  .swap-view-layout {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    max-width: 480px;
+    gap: 16px;
+  }
+  .swap-card { max-width: 100%; }
+  /* Center panel: full width, natural flow */
+  .center-panel {
+    width: 100%;
+    min-height: auto;
+    overflow: visible;
+  }
+  /* Chart: fixed height on mobile */
+  .chart-container {
+    height: 320px;
+    min-height: 320px;
+    flex: none;
+  }
+  /* Trades: limited height, scrollable internally */
+  .trades-section {
+    max-height: 250px;
+    min-height: 80px;
+  }
+  /* Right panel: full width, stacked below */
+  .right-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--card-border);
+    overflow: visible;
+  }
+  /* Touch-friendly tap targets */
+  .pool-item { min-height: 44px; padding: 8px 10px; }
+  .filter-btn { min-height: 36px; padding: 6px 10px; font-size: 11px; }
+  .time-btn { min-height: 36px; padding: 6px 10px; }
+  .panel-tab { min-height: 44px; padding: 12px 8px; }
+  .slippage-btn { min-height: 36px; }
+  .pool-details-toggle { min-height: 44px; padding: 10px 12px; }
+  .nav-link { min-height: 36px; padding: 6px 12px; }
+  /* Compact chart header */
+  .chart-header { flex-wrap: wrap; padding: 8px 10px; gap: 6px; }
+  .chart-pair { font-size: 14px; }
+  .chart-price { font-size: 15px; margin-left: 4px; }
+  #chartOHLCV { display: none; }
+  /* Time selector scrollable */
+  .time-selector { overflow-x: auto; flex-wrap: nowrap; gap: 1px; padding: 4px 8px; }
+  /* Yield KPIs: compact, 5 cells fit on 360px */
+  .yield-kpi-row { flex-wrap: nowrap; gap: 4px; overflow-x: hidden; padding: 2px 0 0; }
+  .yield-kpi { min-width: 0; flex: 1 1 0; padding: 0 1px; text-align: center; align-items: center; }
+  .yield-kpi-label { font-size: 8px; letter-spacing: 0.2px; }
+  .yield-kpi-value { font-size: 11px; }
+  /* Compact link affordance on mobile — keep arrow but tighten paddings */
+  .kpi-clickable[data-href] { padding: 2px 3px; margin: -2px 0; }
+  .kpi-clickable[data-href] .yield-kpi-value::after,
+  .kpi-clickable[data-href] .yield-provider-value::after { font-size: 9px; }
+  .yield-pool-name { font-size: 17px; }
+  .yield-header { padding: 5px 10px 6px; gap: 3px; }
+  /* Providers (Convex/StakeDAO) — wrap to next line under pair name on narrow screens */
+  .yield-header-row { flex-wrap: wrap; row-gap: 3px; }
+  .yield-provider-label { font-size: 9px; }
+  .yield-provider-value { font-size: 12px; }
+  /* Mobile: stack provider label above value (Convex/StakeDAO) */
+  .yield-provider { flex-direction: column; align-items: flex-end; gap: 1px; }
+  /* Pool details full width */
+  .pd-grid { grid-template-columns: 1fr; }
+  .pool-info-grid { grid-template-columns: 1fr; }
+  /* Swap inputs larger for mobile (prevent iOS zoom) */
+  .swap-amount-input { font-size: 16px; }
+  .coin-amount-input { font-size: 16px; }
+  .search-input { font-size: 16px; }
+  /* Token modal full-width on mobile */
+  .token-modal { width: calc(100vw - 32px); max-width: 400px; }
+  /* Wallet button compact */
+  .wallet-btn { padding: 7px 10px; font-size: 11px; margin-left: auto; white-space: nowrap; }
+  /* Header gap tighter on mobile so wallet button fits */
+  .header { gap: 6px; padding: 0 10px; }
+  .header-nav { gap: 2px; }
+  .mobile-pool-toggle { padding: 5px 8px; font-size: 11px; min-height: 32px; }
+}
+
+@media (max-width: 480px) {
+  .header { padding: 0 6px; height: 40px; gap: 4px; }
+  .sidebar.mobile-open { top: 40px; }
+  .logo { font-size: 13px; }
+  .logo span { display: none; } /* Hide "DEX" suffix on tiny screens */
+  .logo img { width: 22px !important; height: 22px !important; margin-right: 3px !important; }
+  .chart-container { height: 280px; min-height: 280px; }
+  .chart-price { font-size: 14px; }
+  .yield-kpi-value { font-size: 13px; }
+  .nav-link { padding: 4px 8px; font-size: 12px; min-height: 32px; }
+  .swap-section { padding: 10px; }
+  .deposit-section { padding: 10px; }
+  .chart-header { padding: 6px 8px; }
+  .time-selector { padding: 3px 6px; }
+  .pool-details-section:not(.open) + .pool-details-section { border-top: none; }
+  .trades-section { max-height: 200px; }
+  /* Wallet button: keep text, right-align, allow shrink. Icon hidden. */
+  .wallet-btn { padding: 5px 8px; font-size: 10px; margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+  .wallet-btn .wallet-btn-text { display: inline; }
+  .wallet-btn:not(.connected) .wallet-btn-icon { display: none; }
+  .wallet-btn.connected { font-size: 10px; padding: 4px 7px; }
+  /* Tighten nav and header to make room for full wallet text */
+  .header { padding: 0 4px; gap: 3px; }
+  .header-nav { gap: 1px; flex-shrink: 1; min-width: 0; overflow: hidden; }
+  .nav-link { padding: 4px 6px; font-size: 11px; }
+  /* Smaller registry filter buttons */
+  .filter-btn { font-size: 10px; padding: 5px 8px; }
+  /* Mobile toggle compact */
+  .mobile-pool-toggle { padding: 4px 7px; font-size: 11px; min-height: 30px; }
+  /* Tighter nav links */
+  .nav-link { padding: 4px 6px; font-size: 11px; min-height: 30px; }
+}
+
+@media (max-width: 360px) {
+  .header { gap: 3px; padding: 0 6px; }
+  .nav-link { padding: 3px 6px; font-size: 11px; }
+  .logo { font-size: 13px; }
+  .logo span { display: none; }
+  .wallet-btn { padding: 5px 8px; font-size: 10px; }
+}
+
+.mobile-pool-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  min-height: 36px;
+}
+.mobile-pool-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+/* Overlay backdrop when sidebar is open on mobile */
+.mobile-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: 44px;
+  background: rgba(0,0,0,0.5);
+  z-index: 49;
+}
+.mobile-sidebar-backdrop.show { display: block; }
+@media (max-width: 1024px) {
+  .mobile-pool-toggle { display: flex; align-items: center; }
+}
+@media (max-width: 480px) {
+  .mobile-sidebar-backdrop { top: 40px; }
+}
+
+@media (max-width: 1024px) {
+  .trade-token-sidebar {
+    display: none;
+    border-right: none;
+  }
+  .trade-token-sidebar.mobile-open {
+    display: flex;
+    position: fixed;
+    top: 44px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: var(--bg);
+    max-height: none;
+  }
+  .main-layout.trade-active {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .trade-token-sidebar.mobile-open { top: 40px; }
+}
+
+@media (min-width: 1600px) {
+  .main-layout:not(.user-resized) { grid-template-columns: 632px 1fr 420px; }
+  .main-layout:not(.user-resized).trade-active { grid-template-columns: 340px 1fr 420px; }
+}
+
+/* Token Balances are scoped to /pools and /yield only.
+   Mobile reorder relocates these elements out of their center-panel
+   parents (siblings of right-panel inside .main-layout), so hiding
+   the parent panel does not hide them. Hide them declaratively here
+   based on a body.page-* class set in switchView. !important guards
+   against the renderers' inline display='' (set on pool selection)
+   leaking into other pages. Showing remains: <body.page-pools> +
+   <#tradeTokenBalances data-page-only="pools"> with display:'' from
+   the renderer (no override applies). */
+body.page-trade [data-page-only="pools"],
+body.page-trade [data-page-only="yield"],
+body.page-swap  [data-page-only="pools"],
+body.page-swap  [data-page-only="yield"],
+body.page-pools [data-page-only="yield"],
+body.page-yield [data-page-only="pools"],
+body.page-portfolio [data-page-only="pools"],
+body.page-portfolio [data-page-only="yield"] {
+  display: none !important;
+}
+
+/* ============================================================
+   WALLET DROPDOWN MENU
+   ============================================================ */
+.wallet-menu {
+  display: none;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  min-width: 200px;
+  padding: 4px;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+.wallet-menu .wm-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.wallet-menu .wm-item.wm-addr {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: default;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 4px;
+}
+.wallet-menu .wm-item.wm-action:hover { background: var(--card-hover); color: var(--accent); }
+.wallet-menu .wm-action-danger { color: var(--red); }
+.wallet-menu .wm-action-danger:hover { background: var(--red-bg); color: var(--red); }
+
+/* ============================================================
+   PORTFOLIO VIEW
+   ============================================================ */
+.main-layout.portfolio-active {
+  grid-template-columns: 1fr;
+}
+.main-layout.portfolio-active .sidebar,
+.main-layout.portfolio-active .right-panel { display: none; }
+.view-portfolio {
+  grid-column: 1 / -1;
+  overflow-y: auto;
+  padding: 18px 24px 40px;
+  background: var(--bg);
+}
+.portfolio-header {
+  margin-bottom: 14px;
+}
+.portfolio-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.portfolio-loading-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.portfolio-stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.ps-stat { display: flex; flex-direction: column; gap: 2px; min-width: 110px; }
+.ps-label { color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.ps-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--text); }
+.ps-value-green { color: var(--green); }
+.ps-claim-all {
+  margin-left: auto;
+  background: var(--accent);
+  color: #0b0e11;
+  border: none;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.ps-claim-all:hover:not(:disabled) { background: var(--accent-hover); }
+.ps-claim-all:disabled { background: var(--card-hover); color: var(--text-muted); cursor: not-allowed; }
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.position-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color var(--transition);
+}
+.position-card:hover { border-color: var(--accent); }
+.pc-head { display: flex; align-items: flex-start; gap: 10px; }
+.pc-coin-icons { display: flex; flex-shrink: 0; }
+.pc-coin-icons img {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #2b3139; border: 1px solid var(--card-border);
+  margin-left: -6px;
+}
+.pc-coin-icons img:first-child { margin-left: 0; }
+.pc-title-block { flex: 1; min-width: 0; }
+.pc-title {
+  font-weight: 700; font-size: 14px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pc-pool-link {
+  font-size: 11px; color: var(--text-dim);
+}
+.pc-pool-link:hover { color: var(--accent); }
+.pc-usd {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.pc-balances {
+  display: flex; flex-direction: column; gap: 2px;
+  font-family: var(--font-mono); font-size: 11px;
+}
+.pc-bal-wallet { color: var(--text); }
+.pc-bal-staked { color: var(--green); }
+.pc-bal-zero { color: var(--text-muted); }
+.pc-apy { display: flex; gap: 8px; flex-wrap: wrap; }
+.pc-apy span {
+  font-family: var(--font-mono); font-size: 11px;
+  padding: 3px 7px; border-radius: 4px; font-weight: 600;
+}
+.pc-apy-vapy { background: var(--green-bg); color: var(--green); }
+.pc-apy-tapr { background: rgba(30,144,255,0.12); color: var(--blue); }
+.pc-rewards {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 10px; background: var(--bg); border-radius: 4px;
+}
+.pc-rewards-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.pc-rewards-value { font-family: var(--font-mono); color: var(--green); font-weight: 600; font-size: 12px; }
+.pc-actions { display: flex; gap: 6px; }
+.pc-btn {
+  flex: 1; padding: 7px 10px; border: 1px solid var(--card-border);
+  background: var(--card-hover); color: var(--text);
+  font-family: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer; border-radius: 4px;
+  transition: background var(--transition), border-color var(--transition);
+}
+.pc-btn:hover:not(:disabled) { background: var(--accent); color: #0b0e11; border-color: var(--accent); }
+.pc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pc-btn-claim:not(:disabled) { color: var(--green); border-color: var(--green); }
+
+/* Cross-platform sub-rows (Curve / Convex / StakeDAO) */
+.pc-sub-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pc-sub-row {
+  display: flex; flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 4px;
+  border-left: 2px solid var(--card-border);
+  font-size: 11px;
+}
+.pc-sub-row .pc-sub-main {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px;
+}
+.pc-sub-row .pc-sub-extras {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 8px; justify-content: flex-end;
+}
+.pc-sub-curve { border-left-color: #4FAFE9; }     /* Curve blue */
+.pc-sub-convex { border-left-color: #FF6B35; }    /* Convex orange */
+.pc-sub-stakedao { border-left-color: #58D68D; }  /* StakeDAO green */
+.pc-src {
+  font-weight: 700; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 6px; border-radius: 3px;
+  flex-shrink: 0;
+}
+.pc-src-curve { background: rgba(79,175,233,0.15); color: #4FAFE9; }
+.pc-src-convex { background: rgba(255,107,53,0.15); color: #FF6B35; }
+.pc-src-stakedao { background: rgba(88,214,141,0.15); color: #58D68D; }
+.pc-sub-lp {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-weight: 600;
+}
+.pc-sub-breakdown {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  font-size: 10px;
+}
+.pc-sub-apr {
+  font-family: var(--font-mono);
+  color: var(--green);
+  font-weight: 600;
+}
+.pc-sub-pending {
+  font-family: var(--font-mono);
+  color: var(--green);
+  font-size: 10px;
+}
+.pc-sub-manage {
+  padding: 4px 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-hover);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+  text-decoration: none;
+  display: inline-block;
+  white-space: nowrap;
+  transition: background var(--transition), border-color var(--transition);
+}
+.pc-sub-manage:hover {
+  background: var(--accent);
+  color: #0b0e11;
+  border-color: var(--accent);
+  text-decoration: none;
+}
+.pc-sub-manage-link::after { /* trailing external-link arrow already encoded as &#8599; */ }
+
+.position-card-skeleton { gap: 8px; }
+.pc-skel { background: var(--card-hover); border-radius: 4px; height: 12px; animation: pc-shimmer 1.4s infinite; }
+.pc-skel-line { height: 14px; }
+@keyframes pc-shimmer {
+  0%,100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+.portfolio-empty {
+  text-align: center; padding: 60px 20px; color: var(--text-dim);
+  background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+}
+.portfolio-empty-icon { font-size: 42px; margin-bottom: 12px; }
+.portfolio-empty h3 { color: var(--text); font-size: 18px; margin-bottom: 8px; }
+.portfolio-empty p { font-size: 13px; margin-bottom: 16px; }
+.portfolio-empty-btn {
+  background: var(--accent); color: #0b0e11; border: none;
+  padding: 10px 22px; border-radius: var(--radius);
+  font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.portfolio-empty-btn:hover { background: var(--accent-hover); }
+.portfolio-stale {
+  font-size: 11px; color: var(--text-dim);
+  background: var(--card-hover); padding: 6px 10px;
+  border-radius: 4px; margin-bottom: 10px; text-align: center;
+}
+
+@media (max-width: 768px) {
+  .view-portfolio { padding: 12px; }
+  .portfolio-stat-bar { gap: 14px; padding: 12px; }
+  .ps-stat { min-width: 90px; }
+  .ps-value { font-size: 15px; }
+  .ps-claim-all { width: 100%; margin-left: 0; margin-top: 6px; }
+  .position-grid { grid-template-columns: 1fr; }
+  .wallet-menu { min-width: 180px; }
+}
+
+/* Inline stake/unstake modal (portfolio dashboard) */
+.portfolio-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.portfolio-modal-overlay[hidden] { display: none; }
+.portfolio-modal {
+  background: var(--card, #14141a);
+  border: 1px solid var(--border, #2a2a2f);
+  border-radius: 12px; padding: 20px;
+  width: 90vw; max-width: 400px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+.pm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.pm-title { margin: 0; font-size: 16px; color: var(--text, #fff); }
+.pm-close {
+  background: none; border: none; color: var(--text-dim, #999);
+  font-size: 22px; cursor: pointer; padding: 0; width: 28px; height: 28px;
+  line-height: 1;
+}
+.pm-close:hover { color: var(--text, #fff); }
+.pm-balance { font-size: 12px; color: var(--text-dim, #888); margin-bottom: 8px; }
+.pm-input {
+  width: 100%; padding: 12px; font-size: 16px;
+  background: var(--bg, #0d0d12); color: var(--text, #fff);
+  border: 1px solid var(--border, #2a2a2f); border-radius: 8px;
+  box-sizing: border-box;
+}
+.pm-input.pm-input-error { border-color: #ff5050; }
+.pm-presets { display: flex; gap: 6px; margin-top: 8px; }
+.pm-presets button {
+  flex: 1; padding: 8px; background: transparent; color: var(--text-dim, #ccc);
+  border: 1px solid var(--border, #2a2a2f); border-radius: 6px;
+  font-size: 12px; cursor: pointer;
+}
+.pm-presets button:hover { background: var(--card-hover, #1a1a20); color: var(--text, #fff); }
+.pm-action {
+  width: 100%; padding: 12px; margin-top: 16px;
+  background: var(--curve-yellow, var(--accent, #FFC107)); color: #000;
+  border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.pm-action:disabled { opacity: 0.5; cursor: not-allowed; }
+.pm-status { margin-top: 12px; font-size: 12px; padding: 8px; border-radius: 6px; }
+.pm-status.error { background: rgba(255,80,80,0.1); color: #ff8888; }
+.pm-status.success { background: rgba(80,255,120,0.1); color: #88ff88; }
+.pm-gas-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text-dim, #888);
+  padding: 8px 0; margin-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.pm-gas-row .gas-value {
+  color: var(--text, #fff); font-family: var(--font-mono); font-weight: 600;
+}
+.pm-gas-row .gas-value.loading { opacity: 0.6; }
+.pm-gas-row .gas-value.error { color: var(--text-dim, #888); font-style: italic; font-weight: 400; }
+
+/* Manage Position modal (tabbed) */
+.portfolio-modal-large { max-width: 480px; }
+.pm-tabs-top { display: flex; gap: 18px; border-bottom: 1px solid var(--border, #2a2a2f); margin-bottom: 12px; }
+.pm-tabs-top[hidden] { display: none; }
+.pm-top {
+  background: none; border: none; color: var(--text-dim, #888);
+  padding: 10px 0; font-size: 13px; font-weight: 600; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.pm-top.active { color: var(--text, #fff); border-bottom-color: var(--curve-yellow, #FFC107); }
+.pm-top:hover { color: var(--text, #fff); }
+.pm-tabs-sub { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.pm-tabs-sub[hidden] { display: none; }
+.pm-sub {
+  background: none; border: none; color: var(--text-dim, #777);
+  padding: 5px 0; font-size: 12px; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.pm-sub.active { color: var(--curve-blue, #4dabf7); border-bottom-color: var(--curve-blue, #4dabf7); }
+.pm-sub:hover { color: var(--text, #fff); }
+.pm-claim-info { padding: 12px; background: var(--bg, #0d0d12); border-radius: 8px; }
+.pm-claim-row {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--bg, #0d0d12); border: 1px solid var(--border, #2a2a2f);
+  border-radius: 8px;
+}
+.pm-claim-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+.pm-claim-label { color: var(--text-dim, #aaa); font-size: 12px; font-weight: 500; }
+.pm-claim-amount {
+  color: var(--text, #fff); font-size: 14px; font-weight: 600;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pm-claim-value { color: var(--text, #fff); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pm-claim-hint { margin: 10px 0 0; color: var(--text-dim, #888); font-size: 12px; line-height: 1.4; }
+.pm-claim-btn {
+  padding: 7px 14px; background: var(--curve-yellow, var(--accent, #FFC107)); color: #000;
+  border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+  min-width: 64px;
+}
+.pm-claim-btn:hover:not(:disabled) { filter: brightness(1.1); }
+.pm-claim-btn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--border, #2a2a2f); color: var(--text-dim, #888); }
+.pm-claim-extras-loading .pm-claim-amount { opacity: 0.5; font-style: italic; font-size: 12px; }
+.pm-link-btn {
+  display: inline-block; width: 100%; box-sizing: border-box;
+  padding: 11px; margin-top: 12px; text-align: center;
+  background: var(--curve-blue, #4dabf7); color: #fff;
+  border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px;
+}
+.pm-link-btn:hover { filter: brightness(1.1); }
+.pm-link-inline { color: var(--curve-blue, #4dabf7); font-size: 11px; text-decoration: none; }
+.pm-link-inline:hover { text-decoration: underline; }
+.pm-coin-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.pm-coin-row {
+  display: grid; grid-template-columns: 1fr 1.4fr auto; align-items: center; gap: 8px;
+  padding: 8px 10px; background: var(--bg, #0d0d12); border: 1px solid var(--border, #2a2a2f);
+  border-radius: 8px;
+}
+.pm-coin-label { display: flex; align-items: center; gap: 6px; color: var(--text, #fff); font-size: 13px; font-weight: 500; }
+.pm-coin-icon { width: 18px; height: 18px; border-radius: 50%; }
+.pm-coin-amount { padding: 6px 8px; font-size: 13px; }
+.pm-coin-bal { color: var(--text-dim, #888); font-size: 11px; font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+.pm-coin-actions { margin-bottom: 6px; text-align: right; }
+@media (max-width: 600px) {
+  .portfolio-modal { width: calc(100vw - 24px); }
+  .pm-tabs-top { gap: 14px; overflow-x: auto; }
+  .pm-tabs-sub { gap: 12px; overflow-x: auto; }
+  .pm-top, .pm-sub { white-space: nowrap; }
+  .pm-coin-row { grid-template-columns: 1fr 1fr; row-gap: 4px; }
+  .pm-coin-bal { grid-column: 1 / -1; text-align: left; }
+}
+
+/* Card actions: new Manage button (replaces Stake/Unstake split) */
+.pc-btn-manage {
+  background: var(--curve-blue, #4dabf7); color: #fff;
+}
+.pc-btn-manage:hover:not(:disabled) { filter: brightness(1.1); }
+
+/* Deployed version indicator (bottom-right corner of viewport) */
+.app-version-indicator {
+  position: fixed;
+  right: 8px;
+  bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.35;
+  cursor: pointer;
+  user-select: none;
+  z-index: 100;
+  transition: opacity var(--transition);
+  background: rgba(0,0,0,0.25);
+  padding: 2px 6px;
+  border-radius: 3px;
+  pointer-events: auto;
+}
+.app-version-indicator:hover { opacity: 0.9; }
+.app-version-indicator:active { opacity: 1; }
+/* At ≤768px the version watermark overlaps content (USDT chips on yield,
+   Route/Price Impact rows on trade). Hide on tablet/mobile — admins still
+   inspect via DOM/network/console. Audit findings #4 #5 (2026-05-01). */
+@media (max-width: 768px) {
+  .app-version-indicator { display: none; }
+}
+
+/* "★ Mine" pill — orthogonal toggle inline with registry filter buttons.
+   Distinct accent (green) from registry-active (yellow) to signal AND-combinable. */
+.filter-btn-mine {
+  border-color: rgba(14,203,129,0.4) !important;
+}
+.filter-btn-mine.active {
+  color: var(--green) !important;
+  border-color: var(--green) !important;
+  background: rgba(14,203,129,0.1) !important;
+}
+/* Inline pool-list favorite star — sits at the start of every .pool-item row.
+   Outline by default, filled+yellow when starred. Click toggles without
+   triggering row-click selectPool (event.stopPropagation in onclick). */
+.pool-item-fav {
+  background: transparent;
+  border: 0;
+  padding: 0 4px 0 0;
+  margin: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+.pool-item-fav:hover { color: var(--accent); }
+.pool-item-fav.active { color: var(--accent); }
+.pool-item-fav .icon { width: 14px; height: 14px; }
+
+/* "★ Fav" pill — same orthogonal AND-toggle, distinct accent (blue) */
+.filter-btn-fav {
+  border-color: rgba(30,144,255,0.4) !important;
+}
+.filter-btn-fav.active {
+  color: var(--blue) !important;
+  border-color: var(--blue) !important;
+  background: rgba(30,144,255,0.1) !important;
+}
+
+/* "↑ Gainers" / "↓ Losers" pills — yield-only, filter by ΔW direction.
+   Green for gainers, red for losers (matching the inline gw-up/gw-down colors). */
+.filter-btn-gainers {
+  border-color: rgba(14,203,129,0.4) !important;
+}
+.filter-btn-gainers.active {
+  color: var(--green) !important;
+  border-color: var(--green) !important;
+  background: rgba(14,203,129,0.1) !important;
+}
+.filter-btn-losers {
+  border-color: rgba(246,70,93,0.4) !important;
+}
+.filter-btn-losers.active {
+  color: var(--red) !important;
+  border-color: var(--red) !important;
+  background: rgba(246,70,93,0.1) !important;
+}
+
+/* "Show hidden" checkbox — native checkbox + label, default unchecked. Reveals
+   deprecated (gauge killed) and dust (TVL < $10K) pools that are hidden by
+   default. Lives inside the .deposit-simulator row (right edge) per Alexandr
+   msg 520. ID-scoped so .deposit-simulator's generic `label` styles
+   (font-size:10px, uppercase) don't override .filter-checkbox typography. */
+.deposit-simulator { gap: 8px; flex-wrap: wrap; }
+.deposit-simulator label.filter-checkbox {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 12px;
+  margin-left: auto;
+}
+.filter-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+.filter-checkbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(180,180,180,0.55);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  margin: 0;
+  flex-shrink: 0;
+}
+.filter-checkbox input[type="checkbox"]:checked {
+  background: rgba(220,220,220,0.15);
+  border-color: rgba(220,220,220,0.85);
+}
+.filter-checkbox input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.filter-checkbox:has(input:checked) { color: var(--text); }
+.filter-checkbox:hover { color: var(--text); }
+
+/* Mobile: desaturate yellow accent — bright #f0b90b on OLED hurts eyes.
+   Cascades into all var(--accent) usages: Connect Wallet btn, slippage pills,
+   nav-link.active, sort-col.active, focus rings, etc. */
+@media (max-width: 768px) {
+  :root {
+    --accent: #d49d0a;
+    --accent-hover: #e3ae16;
+  }
+}
+
+/* ============================================================
+   RESIZABLE SIDE PANELS + COLLAPSE BUTTONS (April 2026)
+   Items 1-4 from @Alexey_Petryashev UX feedback
+   ============================================================ */
+
+/* Override main-layout grid templates to use CSS vars when JS sets them.
+   Default values match the existing px sizes so unset = no visual change.
+   The 3-col grid is preserved (no extra tracks for handles); handles
+   are absolutely-positioned overlays at the boundaries. */
+.main-layout {
+  /* 632px fits all yield-mode columns: Pool/TVL/APY/CRV/Ext/Total/WT/ΔW/FW
+     without truncation. Bumped from 420 (msg 282 from Alexandr 2026-05-01). */
+  --left-w: 632px;
+  --right-w: 380px;
+  position: relative; /* anchor for absolute resize handles */
+}
+.main-layout.user-resized {
+  grid-template-columns: var(--left-w) 1fr var(--right-w);
+}
+.main-layout.user-resized.no-sidebar {
+  grid-template-columns: 1fr var(--right-w);
+}
+.main-layout.user-resized.trade-active {
+  grid-template-columns: var(--left-w) 1fr var(--right-w);
+}
+.main-layout.user-resized.swap-active.no-sidebar {
+  grid-template-columns: 1fr;
+}
+.main-layout.user-resized.portfolio-active {
+  grid-template-columns: 1fr;
+}
+
+/* Resize handles — absolutely positioned at panel boundaries.
+   JS sets `left` / `right` properties on each handle to track the boundary
+   as widths change. They span the full layout height, ~6px wide hit area. */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 5;
+  transition: background 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.resize-handle:hover,
+.resize-handle.active {
+  background: var(--accent);
+}
+/* Make a slim visible bar appear on hover (centered in the hit area) */
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s;
+}
+.resize-handle:hover::after,
+.resize-handle.active::after {
+  background: var(--accent);
+}
+/* Hide handles when not in user-resized mode */
+.main-layout:not(.user-resized) .resize-handle {
+  display: none;
+}
+/* Hide all handles + collapse buttons on mobile (mobile uses stacked layout) */
+@media (max-width: 1024px) {
+  .resize-handle,
+  .panel-collapse-btn { display: none !important; }
+}
+
+/* Collapse buttons floating on the panel boundary (Slack-style) */
+.panel-collapse-btn {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 0 4px 4px 0;
+  color: var(--text-dim);
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  transition: background 0.15s, color 0.15s, transform 0.18s, opacity 0.15s;
+  opacity: 0.55;
+  transform: translateY(-50%);
+}
+.sidebar:hover .panel-collapse-btn,
+.trade-token-sidebar:hover .panel-collapse-btn,
+.right-panel:hover .panel-collapse-btn {
+  opacity: 1;
+}
+.panel-collapse-btn:hover {
+  background: var(--card-hover);
+  color: var(--accent);
+  border-color: var(--accent);
+  opacity: 1 !important;
+}
+.panel-collapse-btn svg {
+  width: 9px;
+  height: 9px;
+}
+/* Left-panel collapse button: anchored to right edge of left panel (boundary) */
+.panel-collapse-btn--left {
+  right: -1px;
+  border-radius: 0 4px 4px 0;
+}
+/* Right-panel collapse button: anchored to left edge of right panel (boundary) */
+.panel-collapse-btn--right {
+  left: -1px;
+  border-radius: 4px 0 0 4px;
+}
+
+/* Collapsed panel state — leaves a thin sliver with re-expand affordance */
+.sidebar.panel-collapsed,
+.trade-token-sidebar.panel-collapsed,
+.right-panel.panel-collapsed {
+  overflow: hidden;
+}
+.sidebar.panel-collapsed > *:not(.panel-collapse-btn),
+.trade-token-sidebar.panel-collapsed > *:not(.panel-collapse-btn),
+.right-panel.panel-collapsed > *:not(.panel-collapse-btn) {
+  display: none !important;
+}
+/* Note: when collapsed, JS sets --left-w / --right-w to 24px directly via inline style,
+   since inline style wins over class-scoped CSS var rules. */
+/* When collapsed, button stays on the boundary edge, full opacity for re-expand affordance */
+.sidebar.panel-collapsed .panel-collapse-btn,
+.trade-token-sidebar.panel-collapsed .panel-collapse-btn,
+.right-panel.panel-collapsed .panel-collapse-btn {
+  opacity: 1;
+}
+/* Rotate chevron when collapsed */
+.sidebar.panel-collapsed .panel-collapse-btn--left svg,
+.trade-token-sidebar.panel-collapsed .panel-collapse-btn--left svg {
+  transform: rotate(180deg);
+}
+.right-panel.panel-collapsed .panel-collapse-btn--right svg {
+  transform: rotate(180deg);
+}
+.panel-collapse-btn svg { transition: transform 0.18s; }
+
+/* Visual hint while user is dragging anything (cursor everywhere, no text-select) */
+body.resize-dragging {
+  cursor: col-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+body.resize-dragging * {
+  cursor: col-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* ============================================================
+   INFO tab — per-token ratings & project info (Step 4 / v=20260513a).
+   Data source: https://llama.box/ratings/data/cache.json
+   ============================================================ */
+.info-tab-section { padding: 8px 2px 4px; }
+.info-cards { display: flex; flex-direction: column; gap: 10px; }
+
+.info-card {
+  background: var(--bg-2, #161b22);
+  border: 1px solid var(--border, #21262d);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.info-card-empty { opacity: 0.7; }
+.info-card-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.info-card-sym {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
+}
+.info-card-name {
+  color: var(--text-dim);
+  font-weight: 400;
+  flex: 1 1 auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.info-card-addr {
+  color: var(--text-dim);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 10px;
+}
+.info-grade-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #0d1117;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  min-width: 28px;
+  text-align: center;
+}
+.info-inherited {
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 6px;
+  margin: 4px 0 6px;
+  background: rgba(88, 166, 255, 0.06);
+  border-left: 2px solid #58a6ff;
+  border-radius: 0 3px 3px 0;
+}
+.info-inherited strong { color: var(--text); }
+
+.info-descr {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.4;
+  margin: 4px 0 8px;
+  max-height: 4.5em; overflow: hidden; text-overflow: ellipsis;
+}
+
+.info-stats-row {
+  display: flex; gap: 12px; margin: 6px 0 8px;
+}
+.info-stat {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.info-stat-label {
+  color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.info-stat-val {
+  color: var(--text); font-weight: 600; font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-dim-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 12px;
+  margin: 4px 0 8px;
+  padding: 6px 4px;
+  border-top: 1px solid var(--border, #21262d);
+  border-bottom: 1px solid var(--border, #21262d);
+}
+.info-dim-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px;
+}
+.info-dim-label { color: var(--text-dim); }
+.info-dim-grade {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-sources { display: flex; flex-direction: column; gap: 3px; }
+.info-src-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px;
+  padding: 2px 0;
+}
+.info-src-label {
+  color: var(--text-dim);
+  min-width: 70px;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.info-src-val { color: var(--text); font-weight: 500; }
+.info-src-link {
+  color: var(--accent, #58a6ff);
+  text-decoration: none;
+  margin-left: auto;
+  font-size: 12px;
+}
+.info-src-link:hover { text-decoration: underline; }
+
+.info-notes-list {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-left: 76px;
+  margin-bottom: 4px;
+}
+.info-note-row {
+  color: var(--text-dim);
+  font-size: 10.5px;
+  text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.info-note-row:hover { color: var(--accent, #58a6ff); text-decoration: underline; }
+
+.info-card-empty-body {
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 0;
+}
